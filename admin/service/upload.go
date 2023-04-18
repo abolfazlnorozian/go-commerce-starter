@@ -32,7 +32,7 @@ func FindAllImagesByAdmin(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	limit := 20 // Number of comments per page
+	limit := 20
 
 	// Calculate offset
 	offset := int64((page - 1) * limit)
@@ -67,7 +67,6 @@ func FindAllImagesByAdmin(c *gin.Context) {
 		simplifiedimages = append(simplifiedimages, simplified)
 	}
 
-	// Count total documents for pagination info
 	totalDocs, err := imgCollection.CountDocuments(c, bson.M{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

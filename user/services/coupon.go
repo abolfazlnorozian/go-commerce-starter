@@ -140,6 +140,72 @@ func GetCouponByCouponCode(c *gin.Context) {
 			return
 		}
 	} else if len(cart.Products) == 0 {
+		var mixes []map[string]interface{}
+		for _, mixID := range cart.Mix {
+			var mix entities.Mixes
+
+			err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+				return
+			}
+
+			var productDetails []entities.MixProducts
+			cur, err := mixProductCollection.Find(c, bson.M{"_id": bson.M{"$in": mix.Products}})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix products", "details": err.Error()})
+				return
+			}
+			defer cur.Close(c)
+
+			for cur.Next(c) {
+				var mixProduct entities.MixProducts
+				if err := cur.Decode(&mixProduct); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to decode mix product", "details": err.Error()})
+					return
+				}
+				productDetails = append(productDetails, mixProduct)
+			}
+			if err := cur.Err(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "cursor error", "details": err.Error()})
+				return
+			}
+			var balanceDetails []map[string]interface{}
+			// for i, balance := range mix.Balances {
+			// 	balanceDetail := map[string]interface{}{
+			// 		"balance": balance,
+			// 	}
+
+			// 	if i < len(productDetails) {
+			// 		balanceDetail["nameproduct"] = productDetails[i].Name
+			// 	} else {
+			// 		balanceDetail["nameproduct"] = "Unknown Product"
+			// 	}
+			// 	balanceDetails = append(balanceDetails, balanceDetail)
+			// }
+			for i, balance := range mix.Balances {
+				balanceDetail := map[string]interface{}{
+					"balance":     balance,
+					"nameproduct": productDetails[i].Name,
+				}
+				balanceDetails = append(balanceDetails, balanceDetail)
+			}
+
+			responseMix := map[string]interface{}{
+				"_id":       mix.ID,
+				"products":  productDetails,
+				"balance":   balanceDetails,
+				"name":      mix.Name,
+				"weight":    mix.Weight,
+				"pattern":   mix.Pattern,
+				"userId":    mix.UserId,
+				"createdAt": mix.CreatedAt,
+				"updatedAt": mix.UpdatedAt,
+				"__v":       mix.V,
+			}
+			mixes = append(mixes, responseMix)
+
+		}
 
 	} else if len(cart.Products) > 0 && len(cart.Mix) > 0 {
 		var retrievedProducts []entities.Products
