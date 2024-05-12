@@ -18,6 +18,7 @@ func AdminProductRoute(r *gin.RouterGroup) {
 	//*************************************************
 	p.POST("/products/:id/dimensions", service.PostDimensionByAdmin)
 	p.POST("/products/:id/dimensions/:dimensionKey/values", service.PostValuesByAdminToDimension)
+	p.POST("/products/:id/variations/", service.PostVariationToProductByAdmin)
 	//*******//**************************
 	p.GET("/products/:id", service.GetProductByIdByAdmin)
 	pro.PUT("/products/:id", service.UpdateProductByAdmin)

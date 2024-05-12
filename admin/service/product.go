@@ -346,6 +346,7 @@ func PostProductByAdmin(c *gin.Context) {
 	product.ID = primitive.NewObjectID()
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
+
 	_, err = proCollection.InsertOne(c, bson.M{
 		"_id":             product.ID,
 		"notExist":        product.NotExist,
@@ -634,8 +635,65 @@ func PostValuesByAdminToDimension(c *gin.Context) {
 		return
 	}
 
-	// Return success response
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "property_updated", "body": gin.H{}})
+}
+func PostVariationToProductByAdmin(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		return
+	}
+
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		return
+	}
+
+	var variation entities.Variation
+	err = c.ShouldBindJSON(&variation)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
+		return
+	}
+	var product entities.Products
+	filter := bson.M{"_id": objectID}
+	err = proCollection.FindOne(c, filter).Decode(&product)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
+		return
+	}
+	product.Variations = append(product.Variations, entities.Variation{
+		Id:              primitive.NewObjectID(),
+		DiscountPercent: variation.DiscountPercent,
+		Quantity:        variation.Quantity,
+		Keys:            variation.Keys,
+		Price:           variation.Price,
+	})
+	update := bson.M{
+		"$set": bson.M{
+			"variations": product.Variations,
+		},
+	}
+	_, err = proCollection.UpdateOne(c, filter, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "varaition_added", "body": gin.H{}})
+
 }
 
 var mixProductCollection *mongo.Collection = database.GetCollection(database.DB, "mixproducts")

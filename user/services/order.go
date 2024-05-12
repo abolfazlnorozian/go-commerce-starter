@@ -13,6 +13,7 @@ import (
 	"shop/helpers"
 	"shop/helpers/zarinpal"
 	"sort"
+	"strings"
 
 	"strconv"
 	"time"
@@ -163,7 +164,7 @@ func AddOrder(c *gin.Context) {
 	order.IsCoupon = false
 	order.Message = ""
 	order.TotalDiscount = 0
-	order.PostalCost = 40000
+	order.PostalCost = 0
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
 	order.V = 0
@@ -1457,6 +1458,7 @@ func BackPayment(c *gin.Context) {
 	}
 
 	orderIdStr := strconv.Itoa(int(orderData.Id.(int32)))
+	buyPrice := strconv.Itoa(int(amount))
 
 	if verifyResponse.Status == 100 || verifyResponse.Status == 101 {
 
@@ -1479,6 +1481,9 @@ func BackPayment(c *gin.Context) {
 		// Prepend the leading zero to the phone number
 		phoneNumberWithZero := "0" + rawPhoneNumber
 		helpers.BackPaymentSendSms(orderIdStr, phoneNumberWithZero)
+		adminsPhones := os.Getenv("ADMINS_PHONES")
+		adminPhoneNumbers := strings.Split(adminsPhones, ",")
+		helpers.SendSmstoAdmin(buyPrice, adminPhoneNumbers)
 
 		c.HTML(http.StatusOK, "success_payment.html", nil)
 
