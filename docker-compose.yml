@@ -12,6 +12,7 @@ services:
       - CORS_DOMAIN=${CORS_DOMAIN}
       - BASE_URL=${BASE_URL}
       - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID}
+      - ADMINS_PHONES=${ADMINS_PHONES}
     depends_on:
       - mongo
     volumes:
