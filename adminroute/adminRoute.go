@@ -19,9 +19,25 @@ func AdminProductRoute(r *gin.RouterGroup) {
 	p.POST("/products/:id/dimensions", service.PostDimensionByAdmin)
 	p.POST("/products/:id/dimensions/:dimensionKey/values", service.PostValuesByAdminToDimension)
 	p.POST("/products/:id/variations/", service.PostVariationToProductByAdmin)
+
 	//*******//**************************
-	p.GET("/products/:id", service.GetProductByIdByAdmin)
+	p.GET("/products/:id", func(c *gin.Context) {
+		values := c.Query("values")
+
+		// Check if 'values' is 'false'
+		if values == "false" {
+			// Call the handler for GetProductByIDByValueFalse
+			service.GetProductByIDByVAlueFalse(c)
+			return
+		}
+
+		// Otherwise, call the handler for GetProductByIdByAdmin
+		service.GetProductByIdByAdmin(c)
+	})
+	// p.GET("/products/:id", service.GetProductByIdByAdmin)
+	// p.GET("/products/:id", service.GetProductByIDByVAlueFalse)
 	pro.PUT("/products/:id", service.UpdateProductByAdmin)
+	pro.DELETE("/products/:id/variations/:variatId", service.DeleteVariationFromProductByAdmin)
 
 	//***********************************
 	// p.OPTIONS("/admin/products", service.GetAllProductsByAdmin)
@@ -32,6 +48,19 @@ func AdminProductRoute(r *gin.RouterGroup) {
 	pro.DELETE("/mix-products/:id", service.DeleteMixBYAdmin)
 	pro.OPTIONS("/mix-products/:id", service.DeleteMixBYAdmin)
 
+}
+func GetProductHandler(c *gin.Context) {
+	values := c.Query("values")
+
+	// Check if 'values' is 'false'
+	if values == "false" {
+		// Call the handler for GetProductByIDByValueFalse
+		service.GetProductByIDByVAlueFalse(c)
+		return
+	}
+
+	// Otherwise, call the handler for GetProductByIdByAdmin
+	service.GetAllProductsByAdmin(c)
 }
 
 func AdminRoutes(r *gin.RouterGroup) {

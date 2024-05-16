@@ -346,6 +346,16 @@ func PostProductByAdmin(c *gin.Context) {
 	product.ID = primitive.NewObjectID()
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
+	var newAttributes []entities.Attribute
+	err = c.ShouldBindJSON(&newAttributes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	for i := range newAttributes {
+		newAttributes[i].ID = primitive.NewObjectID()
+	}
+	product.Attributes = append(product.Attributes, newAttributes...)
 
 	_, err = proCollection.InsertOne(c, bson.M{
 		"_id":             product.ID,
@@ -468,6 +478,7 @@ func UpdateProductByAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "ok_updated", "body": gin.H{}})
 }
 
+//*************************POST DIMENTION******************************************
 func PostDimensionByAdmin(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -637,6 +648,8 @@ func PostValuesByAdminToDimension(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "property_updated", "body": gin.H{}})
 }
+
+//***********************************POST  VARIATIONA*************************************************************
 func PostVariationToProductByAdmin(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -695,6 +708,251 @@ func PostVariationToProductByAdmin(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "varaition_added", "body": gin.H{}})
 
 }
+
+type DimensionResponse struct {
+	Values []int               `json:"values"`
+	ID     string              `json:"_id,omitempty"`
+	Key    *PropertiesResponse `json:"key"`
+}
+type VariationResponae struct {
+	Keys []PropertiesResponse `json:"keys" bson:"keys"`
+	// DiscountPercent int                   `json:"discountPercent" bson:"discountPercent"`
+	// Quantity        int                   `json:"quantity" bson:"quantity"`
+	// Id              primitive.ObjectID    `json:"_id,omitempty" bson:"_id,omitempty"`
+	// Price           int                   `json:"price" bson:"price"`
+}
+
+type PropertiesResponse struct {
+	ID        int       `json:"_id" bson:"_id"`
+	Parent    *int      `json:"parent" bson:"parent"`
+	Name      string    `json:"name" bson:"name"`
+	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
+	V         int       `json:"__v" bson:"__v"`
+}
+
+func GetProductByIDByVAlueFalse(c *gin.Context) {
+	// Check token claims
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Token claims not found in context"})
+		return
+	}
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Invalid token claims type"})
+		return
+	}
+
+	// Check 'values' parameter
+	values := c.Query("values")
+	if values != "false" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'values' parameter"})
+		return
+	}
+
+	// Get product ID from request parameters
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Convert ID string to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Fetch product from the database
+	var product entities.Products
+	filter := bson.M{"_id": objectID}
+	err = proCollection.FindOne(c, filter).Decode(&product)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Failed to fetch product"})
+		return
+	}
+
+	// Prepare response dimensions
+	var dimensionResponses []DimensionResponse
+	for _, dim := range product.Dimensions {
+		// Fetch properties document from the properties collection
+		var properties entities.Properties
+		err = propertiesCollection.FindOne(c, bson.M{"_id": dim.Key}).Decode(&properties)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch dimension key information"})
+			return
+		}
+
+		// Create a DimensionResponse using the fetched properties
+		dimensionResponse := DimensionResponse{
+			Values: dim.Values,
+			ID:     dim.ID.Hex(),
+			Key: &PropertiesResponse{
+				ID:        properties.ID,
+				Parent:    properties.Parent,
+				Name:      properties.Name,
+				CreatedAt: properties.CreatedAt,
+				UpdatedAt: properties.UpdatedAt,
+				V:         properties.V,
+			},
+		}
+		dimensionResponses = append(dimensionResponses, dimensionResponse)
+	}
+	var variationsResponses []VariationResponae
+	for _, variat := range product.Variations {
+		// Fetch properties documents from the properties collection
+		cursor, err := propertiesCollection.Find(c, bson.M{"_id": bson.M{"$in": variat.Keys}})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch variation keys information"})
+			return
+		}
+		defer cursor.Close(c)
+
+		var properties []*entities.Properties
+		for cursor.Next(c) {
+			var prop entities.Properties
+			if err := cursor.Decode(&prop); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to decode properties document"})
+				return
+			}
+			properties = append(properties, &prop)
+		}
+		if err := cursor.Err(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Cursor error"})
+			return
+		}
+
+		// Create VariationResponse using the fetched properties
+		var variationKeys []PropertiesResponse
+		for _, prop := range properties {
+			variationKey := PropertiesResponse{
+				ID:        prop.ID,
+				Parent:    prop.Parent,
+				Name:      prop.Name,
+				CreatedAt: prop.CreatedAt,
+				UpdatedAt: prop.UpdatedAt,
+				V:         prop.V,
+			}
+			variationKeys = append(variationKeys, variationKey)
+		}
+		variationResponse := VariationResponae{
+			Keys: variationKeys,
+		}
+		variationsResponses = append(variationsResponses, variationResponse)
+	}
+	if variationsResponses == nil {
+		variationsResponses = make([]VariationResponae, 0)
+	}
+	// Construct the response JSON similar to the provided format
+	responseBody := gin.H{
+		"_id":             product.ID.Hex(),
+		"dimensions":      dimensionResponses,
+		"name":            product.Name,
+		"productType":     product.ProductType,
+		"price":           product.Price,
+		"variations":      product.Variations,
+		"categories":      product.Category,
+		"categoryId":      product.CategoryID,
+		"attributes":      product.Attributes,
+		"tags":            product.Tags,
+		"bannerUrl":       product.BannerUrl,
+		"slug":            product.Slug,
+		"discountPercent": product.DiscountPercent,
+		"amazing":         product.Amazing,
+		"images":          product.Images,
+		"variationNames":  variationsResponses,
+		"shortId":         product.ShortID,
+	}
+
+	// Send the response
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": responseBody})
+}
+
+///*******************************DELETE VARIATION*************************************************
+func DeleteVariationFromProductByAdmin(c *gin.Context) {
+	// Check token claims
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		return
+	}
+
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		return
+	}
+
+	// Get product ID from URL parameter
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Convert ID string to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Define filter to find product by ID
+	filter := bson.M{"_id": objectID}
+
+	// Find the product by ID
+	var product entities.Products
+	err = proCollection.FindOne(c, filter).Decode(&product)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get variation ID from URL parameter
+	variatID := c.Param("variatId")
+	if variatID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variatId' parameter"})
+		return
+	}
+
+	// Convert variation ID string to ObjectID
+	variationObjectID, err := primitive.ObjectIDFromHex(variatID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variatId' parameter"})
+		return
+	}
+
+	// Loop through variations to find and remove the one with matching ID
+	var updatedVariations []entities.Variation
+	for _, variation := range product.Variations {
+		if variation.Id != variationObjectID {
+			updatedVariations = append(updatedVariations, variation)
+		}
+	}
+
+	product.Variations = updatedVariations
+	var update bson.M
+	if len(updatedVariations) == 0 {
+
+		update = bson.M{"$set": bson.M{"variations": []entities.Addr{}}}
+	} else {
+
+		update = bson.M{"$set": bson.M{"variations": updatedVariations}}
+	}
+
+	_, err = proCollection.UpdateOne(c, filter, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
+		return
+	}
+
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "varaition_deleted", "body": gin.H{}})
+}
+
+//**************************************************************************************************
 
 var mixProductCollection *mongo.Collection = database.GetCollection(database.DB, "mixproducts")
 

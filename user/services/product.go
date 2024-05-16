@@ -943,6 +943,8 @@ func GetMixProducts(c *gin.Context) {
 // 	c.JSON(http.StatusNoContent, gin.H{})
 // }
 
+// *************************************************************************************8
+
 func PostMixesProduct(c *gin.Context) {
 	var mixes []entities.Mixes
 
@@ -1084,7 +1086,7 @@ func DeleteMixofCart(c *gin.Context) {
 	}
 
 	// // Delete the mix from the cart collection
-	// filter := bson.M{"username": claims.Username, "mix": objectID}
+	// filter = bson.M{"username": claims.Username, "mix": objectID}
 	// update := bson.M{"$unset": bson.M{"mix": ""}}
 	// _, err = cartCollection.UpdateOne(c, filter, update)
 	// if err != nil {

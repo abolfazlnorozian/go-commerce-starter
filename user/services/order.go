@@ -164,7 +164,7 @@ func AddOrder(c *gin.Context) {
 	order.IsCoupon = false
 	order.Message = ""
 	order.TotalDiscount = 0
-	order.PostalCost = 0
+	order.PostalCost = 40000
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
 	order.V = 0
@@ -510,6 +510,8 @@ func AddOrder(c *gin.Context) {
 	// Respond with success message and order ID
 	c.JSON(http.StatusOK, gin.H{"message": "order_added", "success": true, "body": gin.H{"orderId": order.Id}})
 }
+
+//********************************************************************************************************
 
 // func AddOrder(c *gin.Context) {
 // 	var order entities.Order
@@ -952,6 +954,184 @@ func GetOrderByID(c *gin.Context) {
 
 	// // Check if the order has a mix
 	if len(orders.Products) == 0 {
+		// var mixes []entities.Mixes
+
+		// if orders.Mix != nil {
+		// 	// Check if orders.Mix is an ObjectID
+		// 	if mixID, ok := orders.Mix.(primitive.ObjectID); ok {
+
+		// 		var mix entities.Mixes
+		// 		err = mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+		// 		if err != nil {
+		// 			c.JSON(http.StatusInternalServerError, gin.H{"messageOrder": "mix not found"})
+		// 			return
+		// 		}
+
+		// 		// Fetch the mix products details
+		// 		var mixProducts []entities.MixProducts
+		// 		cur, err := mixProductCollection.Find(c, bson.M{"_id": bson.M{"$in": mix.Products}})
+		// 		if err != nil {
+		// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "not found mixproduct"})
+		// 			return
+		// 		}
+
+		// 		defer cur.Close(c)
+
+		// 		// Iterate through the cursor to decode each variation
+		// 		for cur.Next(c) {
+		// 			var mixProduct entities.MixProducts
+		// 			if err := cur.Decode(&mixProduct); err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 				return
+		// 			}
+
+		// 			mixProducts = append(mixProducts, mixProduct)
+		// 		}
+		// 		if err := cur.Err(); err != nil {
+		// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 			return
+		// 		}
+
+		// 		// Construct the response body including mix and mix products
+		// 		responseBody := gin.H{
+		// 			"isCoupon":      orders.IsCoupon,
+		// 			"startDate":     orders.StartDate,
+		// 			"status":        orders.Status,
+		// 			"paymentStatus": orders.PaymentStatus,
+		// 			"message":       orders.Message,
+		// 			"_id":           orders.Id,
+		// 			"totalPrice":    orders.TotalPrice,
+		// 			"totalDiscount": orders.TotalDiscount,
+		// 			"totalQuantity": orders.TotalQuantity,
+		// 			"postalCost":    orders.PostalCost,
+		// 			"userId":        orders.UserId,
+		// 			"products":      orders.Products,
+		// 			"jStartDate":    orders.JStartDate,
+		// 			"address":       orders.Address,
+		// 			"mix": gin.H{
+		// 				"products":  mixProducts,
+		// 				"_id":       mix.ID,
+		// 				"name":      mix.Name,
+		// 				"weight":    mix.Weight,
+		// 				"pattern":   mix.Pattern,
+		// 				"userId":    mix.UserId,
+		// 				"createdAt": mix.CreatedAt,
+		// 				"updatedAt": mix.UpdatedAt,
+		// 				"__v":       mix.V,
+		// 				"balance":   mix.Balance,
+		// 			},
+		// 			"createdAt": orders.CreatedAt,
+		// 			"updatedAt": orders.UpdatedAt,
+		// 			"__v":       orders.V,
+		// 		}
+
+		// 		// Send the response
+		// 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": responseBody})
+		// 		// // orders.Mix is a single ObjectID, fetch the mix document
+		// 		// var mix entities.Mixes
+		// 		// err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+		// 		// if err != nil {
+		// 		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+		// 		// 	return
+		// 		// }
+		// 		// mixes = append(mixes, mix)
+		// 	} else if mixIDs, ok := orders.Mix.([]primitive.ObjectID); ok {
+		// 		// orders.Mix is an array of ObjectIDs, fetch mix documents for each mix ID
+		// 		for _, mixID := range mixIDs {
+		// 			var mix entities.Mixes
+		// 			err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+		// 			if err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+		// 				return
+		// 			}
+		// 			mixes = append(mixes, mix)
+		// 		}
+		// 		var mixProductsMap = make(map[string][]entities.MixProducts)
+
+		// 		// Populate mixProductsMap with mix products by mix ID
+		// 		for _, mix := range mixes {
+		// 			var mixProducts []entities.MixProducts
+
+		// 			// Fetch mix products for the current mix
+		// 			cur, err := mixProductCollection.Find(c, bson.M{"_id": bson.M{"$in": mix.Products}})
+		// 			if err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "not found mixproduct"})
+		// 				return
+		// 			}
+
+		// 			defer cur.Close(c)
+
+		// 			// Iterate through the cursor to decode each mix product
+		// 			for cur.Next(c) {
+		// 				var mixProduct entities.MixProducts
+		// 				if err := cur.Decode(&mixProduct); err != nil {
+		// 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 					return
+		// 				}
+		// 				mixProducts = append(mixProducts, mixProduct)
+		// 			}
+		// 			if err := cur.Err(); err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 				return
+		// 			}
+
+		// 			// Store mix products in the map with mix ID as the key (convert mix ID to string)
+		// 			mixProductsMap[mix.ID.Hex()] = mixProducts
+		// 		}
+
+		// 		// Construct mix array for the response body
+		// 		var mixArray []gin.H
+		// 		for _, mix := range mixes {
+		// 			mixProductArray, ok := mixProductsMap[mix.ID.Hex()] // Convert mix ID to string
+		// 			if !ok {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "mix products not found for mix ID: " + mix.ID.Hex()})
+		// 				return
+		// 			}
+		// 			mixDetails := gin.H{
+		// 				"_id":       mix.ID,
+		// 				"name":      mix.Name,
+		// 				"weight":    mix.Weight,
+		// 				"pattern":   mix.Pattern,
+		// 				"userId":    mix.UserId,
+		// 				"createdAt": mix.CreatedAt,
+		// 				"updatedAt": mix.UpdatedAt,
+		// 				"__v":       mix.V,
+		// 				"balance":   mix.Balance,
+		// 				"products":  mixProductArray,
+		// 			}
+		// 			mixArray = append(mixArray, mixDetails)
+		// 		}
+
+		// 		// Construct the response body including mixes and other order details
+		// 		responseBody := gin.H{
+		// 			"isCoupon":      orders.IsCoupon,
+		// 			"startDate":     orders.StartDate,
+		// 			"status":        orders.Status,
+		// 			"paymentStatus": orders.PaymentStatus,
+		// 			"message":       orders.Message,
+		// 			"_id":           orders.Id,
+		// 			"totalPrice":    orders.TotalPrice,
+		// 			"totalDiscount": orders.TotalDiscount,
+		// 			"totalQuantity": orders.TotalQuantity,
+		// 			"postalCost":    orders.PostalCost,
+		// 			"userId":        orders.UserId,
+		// 			"products":      orders.Products,
+		// 			"jStartDate":    orders.JStartDate,
+		// 			"address":       orders.Address,
+		// 			"mixes":         mixArray,
+		// 			"createdAt":     orders.CreatedAt,
+		// 			"updatedAt":     orders.UpdatedAt,
+		// 			"__v":           orders.V,
+		// 		}
+
+		// 		// Send the response
+		// 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": responseBody})
+		// 	}
+		// }
+
+		// Declare and initialize mixProductsMap
+
+		//*****************************************************************************8
 		var mixes []entities.Mixes
 		var mixProductsMap = make(map[string][]entities.MixProducts) // Map to store mix products by mix ID
 		for _, mixID := range orders.Mix {
@@ -1041,7 +1221,7 @@ func GetOrderByID(c *gin.Context) {
 		// Send the response
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": responseBody})
 
-	} else if len(orders.Mix) == 0 {
+	} else if orders.Mix == nil {
 		// If the order doesn't have a mix, handle it as usual
 		// Construct the response body without mix details
 		responseBody := gin.H{
@@ -1066,7 +1246,183 @@ func GetOrderByID(c *gin.Context) {
 
 		// Send the response
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": responseBody})
-	} else if len(orders.Products) > 0 && len(orders.Mix) > 0 {
+	} else if len(orders.Products) > 0 && orders.Mix != nil {
+		// var mixes []entities.Mixes
+
+		// if orders.Mix != nil {
+		// 	// Check if orders.Mix is an ObjectID
+		// 	if mixID, ok := orders.Mix.(primitive.ObjectID); ok {
+
+		// 		var mix entities.Mixes
+		// 		err = mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+		// 		if err != nil {
+		// 			c.JSON(http.StatusInternalServerError, gin.H{"messageOrder": "mix not found"})
+		// 			return
+		// 		}
+
+		// 		// Fetch the mix products details
+		// 		var mixProducts []entities.MixProducts
+		// 		cur, err := mixProductCollection.Find(c, bson.M{"_id": bson.M{"$in": mix.Products}})
+		// 		if err != nil {
+		// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "not found mixproduct"})
+		// 			return
+		// 		}
+
+		// 		defer cur.Close(c)
+
+		// 		// Iterate through the cursor to decode each variation
+		// 		for cur.Next(c) {
+		// 			var mixProduct entities.MixProducts
+		// 			if err := cur.Decode(&mixProduct); err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 				return
+		// 			}
+
+		// 			mixProducts = append(mixProducts, mixProduct)
+		// 		}
+		// 		if err := cur.Err(); err != nil {
+		// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 			return
+		// 		}
+
+		// 		// Construct the response body including mix and mix products
+		// 		responseBody := gin.H{
+		// 			"isCoupon":      orders.IsCoupon,
+		// 			"startDate":     orders.StartDate,
+		// 			"status":        orders.Status,
+		// 			"paymentStatus": orders.PaymentStatus,
+		// 			"message":       orders.Message,
+		// 			"_id":           orders.Id,
+		// 			"totalPrice":    orders.TotalPrice,
+		// 			"totalDiscount": orders.TotalDiscount,
+		// 			"totalQuantity": orders.TotalQuantity,
+		// 			"postalCost":    orders.PostalCost,
+		// 			"userId":        orders.UserId,
+		// 			"products":      orders.Products,
+		// 			"jStartDate":    orders.JStartDate,
+		// 			"address":       orders.Address,
+		// 			"mix": gin.H{
+		// 				"products":  mixProducts,
+		// 				"_id":       mix.ID,
+		// 				"name":      mix.Name,
+		// 				"weight":    mix.Weight,
+		// 				"pattern":   mix.Pattern,
+		// 				"userId":    mix.UserId,
+		// 				"createdAt": mix.CreatedAt,
+		// 				"updatedAt": mix.UpdatedAt,
+		// 				"__v":       mix.V,
+		// 				"balance":   mix.Balance,
+		// 			},
+		// 			"createdAt": orders.CreatedAt,
+		// 			"updatedAt": orders.UpdatedAt,
+		// 			"__v":       orders.V,
+		// 		}
+
+		// 		// Send the response
+		// 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": responseBody})
+		// 		// // orders.Mix is a single ObjectID, fetch the mix document
+		// 		// var mix entities.Mixes
+		// 		// err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+		// 		// if err != nil {
+		// 		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+		// 		// 	return
+		// 		// }
+		// 		// mixes = append(mixes, mix)
+		// 	} else if mixIDs, ok := orders.Mix.([]primitive.ObjectID); ok {
+		// 		// orders.Mix is an array of ObjectIDs, fetch mix documents for each mix ID
+		// 		for _, mixID := range mixIDs {
+		// 			var mix entities.Mixes
+		// 			err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+		// 			if err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+		// 				return
+		// 			}
+		// 			mixes = append(mixes, mix)
+		// 		}
+		// 		var mixProductsMap = make(map[string][]entities.MixProducts)
+
+		// 		// Populate mixProductsMap with mix products by mix ID
+		// 		for _, mix := range mixes {
+		// 			var mixProducts []entities.MixProducts
+
+		// 			// Fetch mix products for the current mix
+		// 			cur, err := mixProductCollection.Find(c, bson.M{"_id": bson.M{"$in": mix.Products}})
+		// 			if err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "not found mixproduct"})
+		// 				return
+		// 			}
+
+		// 			defer cur.Close(c)
+
+		// 			// Iterate through the cursor to decode each mix product
+		// 			for cur.Next(c) {
+		// 				var mixProduct entities.MixProducts
+		// 				if err := cur.Decode(&mixProduct); err != nil {
+		// 					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 					return
+		// 				}
+		// 				mixProducts = append(mixProducts, mixProduct)
+		// 			}
+		// 			if err := cur.Err(); err != nil {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// 				return
+		// 			}
+
+		// 			// Store mix products in the map with mix ID as the key (convert mix ID to string)
+		// 			mixProductsMap[mix.ID.Hex()] = mixProducts
+		// 		}
+
+		// 		// Construct mix array for the response body
+		// 		var mixArray []gin.H
+		// 		for _, mix := range mixes {
+		// 			mixProductArray, ok := mixProductsMap[mix.ID.Hex()] // Convert mix ID to string
+		// 			if !ok {
+		// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "mix products not found for mix ID: " + mix.ID.Hex()})
+		// 				return
+		// 			}
+		// 			mixDetails := gin.H{
+		// 				"_id":       mix.ID,
+		// 				"name":      mix.Name,
+		// 				"weight":    mix.Weight,
+		// 				"pattern":   mix.Pattern,
+		// 				"userId":    mix.UserId,
+		// 				"createdAt": mix.CreatedAt,
+		// 				"updatedAt": mix.UpdatedAt,
+		// 				"__v":       mix.V,
+		// 				"balance":   mix.Balance,
+		// 				"products":  mixProductArray,
+		// 			}
+		// 			mixArray = append(mixArray, mixDetails)
+		// 		}
+
+		// 		// Construct the response body including mixes and other order details
+		// 		responseBody := gin.H{
+		// 			"isCoupon":      orders.IsCoupon,
+		// 			"startDate":     orders.StartDate,
+		// 			"status":        orders.Status,
+		// 			"paymentStatus": orders.PaymentStatus,
+		// 			"message":       orders.Message,
+		// 			"_id":           orders.Id,
+		// 			"totalPrice":    orders.TotalPrice,
+		// 			"totalDiscount": orders.TotalDiscount,
+		// 			"totalQuantity": orders.TotalQuantity,
+		// 			"postalCost":    orders.PostalCost,
+		// 			"userId":        orders.UserId,
+		// 			"products":      orders.Products,
+		// 			"jStartDate":    orders.JStartDate,
+		// 			"address":       orders.Address,
+		// 			"mixes":         mixArray,
+		// 			"createdAt":     orders.CreatedAt,
+		// 			"updatedAt":     orders.UpdatedAt,
+		// 			"__v":           orders.V,
+		// 		}
+
+		// 		// Send the response
+		// 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": responseBody})
+		// 	}
+		// }
+
+		//******************************************************************************
 		var mixes []entities.Mixes
 		var mixProductsMap = make(map[string][]entities.MixProducts) // Map to store mix products by mix ID
 		for _, mixID := range orders.Mix {

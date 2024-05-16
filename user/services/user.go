@@ -292,69 +292,6 @@ func UpdatedUser(c *gin.Context) {
 	}
 }
 
-// func UpdatedUser(c *gin.Context) {
-// 	var user entities.Users
-
-// 	tokenClaims, exists := c.Get("tokenClaims")
-
-// 	if !exists {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-// 		return
-// 	}
-
-// 	claims, ok := tokenClaims.(*auth.SignedUserDetails)
-// 	if !ok {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-// 		return
-// 	}
-
-// 	username := claims.Username
-// 	//role := claims.Role
-
-// 	if err := c.ShouldBindJSON(&user); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-// 		return
-// 	}
-
-// 	// Construct the update document
-// 	update := bson.D{
-// 		bson.E{Key: "$set", Value: bson.D{}}, // Initialize an empty $set operator
-// 	}
-
-// 	// Add individual field updates if they are present in the request
-// 	if user.Name != "" {
-// 		update[0].Value = append(update[0].Value.(bson.D), bson.E{Key: "activeSession", Value: user.ActiveSession})
-// 	}
-// 	if user.LastName != "" {
-// 		update[0].Value = append(update[0].Value.(bson.D), bson.E{Key: "fcmRegistrationToken", Value: user.FcmRegistratinToken})
-// 	}
-// 	if user.Sex != 0 {
-// 		update[0].Value = append(update[0].Value.(bson.D), bson.E{Key: "sex", Value: user.Sex})
-// 	}
-// 	if user.Email != "" {
-// 		update[0].Value = append(update[0].Value.(bson.D), bson.E{Key: "email", Value: user.Email})
-// 	}
-// 	if user.BirthDate != "" {
-// 		update[0].Value = append(update[0].Value.(bson.D), bson.E{Key: "birthDate", Value: user.BirthDate})
-// 	}
-// 	// Add updates for other fields as needed...
-
-// 	// Update the user document based on the username from the token
-// 	filter := bson.D{{Key: "username", Value: username}}
-// 	updateResult, err := usersCollection.UpdateOne(c, filter, update)
-
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	if updateResult.ModifiedCount == 0 {
-// 		c.JSON(http.StatusOK, gin.H{"message": "No changes were made"})
-// 	} else {
-// 		c.JSON(http.StatusOK, gin.H{"success": true, "message": "ok_edited"})
-// 	}
-// }
-
 func GetUserByToken(c *gin.Context) {
 	var user entities.Users
 	tokenClaims, exists := c.Get("tokenClaims")
