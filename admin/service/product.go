@@ -479,6 +479,7 @@ func UpdateProductByAdmin(c *gin.Context) {
 }
 
 //*************************POST DIMENTION******************************************
+
 func PostDimensionByAdmin(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -632,8 +633,8 @@ func PostValuesByAdminToDimension(c *gin.Context) {
 		return
 	}
 
-	// Append the new values to the existing values in the dimension
-	product.Dimensions[dimensionIndex].Values = append(product.Dimensions[dimensionIndex].Values, payload.Values...)
+	// Overwrite the existing values with the new ones
+	product.Dimensions[dimensionIndex].Values = payload.Values
 	update := bson.M{
 		"$set": bson.M{
 			"dimensions": product.Dimensions,
@@ -936,7 +937,7 @@ func DeleteVariationFromProductByAdmin(c *gin.Context) {
 	var update bson.M
 	if len(updatedVariations) == 0 {
 
-		update = bson.M{"$set": bson.M{"variations": []entities.Addr{}}}
+		update = bson.M{"$set": bson.M{"variations": []entities.Variation{}}}
 	} else {
 
 		update = bson.M{"$set": bson.M{"variations": updatedVariations}}
@@ -950,6 +951,86 @@ func DeleteVariationFromProductByAdmin(c *gin.Context) {
 
 	// Return success response
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "varaition_deleted", "body": gin.H{}})
+}
+
+//***********************DELETE DIMENSION KEY FORM DIMENSION*************************************
+func DeleteDimensionFromProductByAdmin(c *gin.Context) {
+	// Check token claims
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		return
+	}
+
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		return
+	}
+
+	// Get product ID from URL parameter
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Convert ID string to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Define filter to find product by ID
+	filter := bson.M{"_id": objectID}
+
+	// Find the product by ID
+	var product entities.Products
+	err = proCollection.FindOne(c, filter).Decode(&product)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	KeyID := c.Param("keyID")
+	if KeyID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variatId' parameter"})
+		return
+	}
+
+	intID, err := strconv.Atoi(KeyID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	// Loop through variations to find and remove the one with matching ID
+	var updatedDimesion []entities.Dimension
+	for _, dimension := range product.Dimensions {
+		if dimension.Key != intID {
+			updatedDimesion = append(updatedDimesion, dimension)
+		}
+	}
+
+	product.Dimensions = updatedDimesion
+	var update bson.M
+	if len(updatedDimesion) == 0 {
+
+		update = bson.M{"$set": bson.M{"dimensions": []entities.Dimension{}}}
+	} else {
+
+		update = bson.M{"$set": bson.M{"dimensions": updatedDimesion}}
+	}
+
+	_, err = proCollection.UpdateOne(c, filter, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
+		return
+	}
+
+	// Return success response
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "dimension_deleted", "body": gin.H{}})
 }
 
 //**************************************************************************************************

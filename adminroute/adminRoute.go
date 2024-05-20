@@ -15,6 +15,7 @@ func AdminProductRoute(r *gin.RouterGroup) {
 	p.GET("/products", service.GetAllProductsByAdmin)
 	pro.POST("/products", service.PostProductByAdmin)
 	pro.DELETE("/products/:id", service.DeleteProductByAdmin)
+	pro.GET("/products/byid/:id", service.CommentGetProductByIDByAdmin)
 	//*************************************************
 	p.POST("/products/:id/dimensions", service.PostDimensionByAdmin)
 	p.POST("/products/:id/dimensions/:dimensionKey/values", service.PostValuesByAdminToDimension)
@@ -38,6 +39,7 @@ func AdminProductRoute(r *gin.RouterGroup) {
 	// p.GET("/products/:id", service.GetProductByIDByVAlueFalse)
 	pro.PUT("/products/:id", service.UpdateProductByAdmin)
 	pro.DELETE("/products/:id/variations/:variatId", service.DeleteVariationFromProductByAdmin)
+	pro.DELETE("/products/:id/dimensions/:keyID", service.DeleteDimensionFromProductByAdmin)
 
 	//***********************************
 	// p.OPTIONS("/admin/products", service.GetAllProductsByAdmin)
@@ -49,19 +51,20 @@ func AdminProductRoute(r *gin.RouterGroup) {
 	pro.OPTIONS("/mix-products/:id", service.DeleteMixBYAdmin)
 
 }
-func GetProductHandler(c *gin.Context) {
-	values := c.Query("values")
 
-	// Check if 'values' is 'false'
-	if values == "false" {
-		// Call the handler for GetProductByIDByValueFalse
-		service.GetProductByIDByVAlueFalse(c)
-		return
-	}
+// func GetProductHandler(c *gin.Context) {
+// 	values := c.Query("values")
 
-	// Otherwise, call the handler for GetProductByIdByAdmin
-	service.GetAllProductsByAdmin(c)
-}
+// 	// Check if 'values' is 'false'
+// 	if values == "false" {
+// 		// Call the handler for GetProductByIDByValueFalse
+// 		service.GetProductByIDByVAlueFalse(c)
+// 		return
+// 	}
+
+// 	// Otherwise, call the handler for GetProductByIdByAdmin
+// 	service.GetAllProductsByAdmin(c)
+// }
 
 func AdminRoutes(r *gin.RouterGroup) {
 	u := r.Group("/admins")
@@ -99,7 +102,6 @@ func Comments(r *gin.RouterGroup) {
 	co.Use(auth.AdminAuthenticate())
 	co.GET("/comments", service.GetCommentByAdmin)
 	co.OPTIONS("/comments", service.GetCommentByAdmin)
-	co.GET("/products/byid/:id", service.CommentGetProductByIDByAdmin)
 	co.PUT("/comments/:id", service.UpdateCommentByAdmin)
 
 }
@@ -152,12 +154,19 @@ func PageRouteByAdmin(r *gin.RouterGroup) {
 	pg.PUT("/pages/:id", service.UpdatePagesByAdmin)
 }
 func OrderRouteByAdmin(r *gin.RouterGroup) {
+	or := r.Group("/")
 	ord := r.Group("/admin")
+	or.Use(auth.AdminAuthenticate())
 	ord.Use(auth.AdminAuthenticate())
 	ord.GET("/users/orders", service.GetOrdersByAdmin)
+	ord.GET("/users/orders/:id", service.GetOrderByIdByAdmin)
+	or.GET("/users/:id/information", service.GetInformationUserByAdmin)
 }
 func CouponRoutesByAdmin(r *gin.RouterGroup) {
 	coupon := r.Group("/")
 	coupon.Use(auth.AdminAuthenticate())
 	coupon.GET("/coupons", service.GetCouponsByAdmin)
+	coupon.POST("/coupons", service.PostCopounByAdmin)
+	coupon.DELETE("/coupons/:id", service.DeleteCouponByAdmin)
+	coupon.PUT("/coupons/:id", service.UpdateCouponByAdmin)
 }

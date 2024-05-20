@@ -7,9 +7,11 @@ import (
 	"shop/database"
 	"shop/entities"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -96,4 +98,113 @@ func GetCouponsByAdmin(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "coupons", "body": response})
 
+}
+
+func PostCopounByAdmin(c *gin.Context) {
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		return
+	}
+
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		return
+	}
+	var coupon entities.Coupons
+	err := c.ShouldBindJSON(&coupon)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error1": err.Error()})
+		return
+	}
+	coupon.ID = primitive.NewObjectID()
+	coupon.CreatedAt = time.Now()
+	coupon.UpdatedAt = time.Now()
+	_, err = couponCollection.InsertOne(c, coupon)
+	if err != nil {
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "coupon_saved", "body": gin.H{}})
+}
+
+func DeleteCouponByAdmin(c *gin.Context) {
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		return
+	}
+
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		return
+	}
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
+		return
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+	filter := bson.M{"_id": objectID}
+	var coupon entities.Coupons
+	err = couponCollection.FindOneAndDelete(c, filter).Decode(&coupon)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "coupon_deleted", "body": gin.H{}})
+}
+func UpdateCouponByAdmin(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
+		return
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	tokenClaims, exists := c.Get("tokenClaims")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		return
+	}
+
+	_, ok := tokenClaims.(*auth.SignedAdminDetails)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		return
+	}
+
+	filter := bson.M{"_id": objectID}
+	updateFields := make(map[string]interface{})
+
+	if err := c.ShouldBindJSON(&updateFields); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updateFields["updatedAt"] = time.Now()
+
+	updateQuery := bson.M{"$set": updateFields}
+
+	_, err = couponCollection.UpdateOne(c, filter, updateQuery)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "coupon_edited", "body": gin.H{}})
 }

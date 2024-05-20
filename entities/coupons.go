@@ -13,7 +13,7 @@ type Coupons struct {
 	CouponCode      string             `json:"couponCode" bson:"couponCode"`
 	Amount          int                `json:"amount" bson:"amount"`
 	MinimumPurchase int                `json:"minimumPurchase" bson:"minimumPurchase"`
-	DateExpired     time.Time          `json:"dateExpired" bson:"dateExpired"`
+	DateExpired     string             `json:"dateExpired" bson:"dateExpired"`
 	To              string             `json:"to" bson:"to"`
 	User            string             `json:"user" bson:"user"`
 	Category        string             `json:"category" bson:"category"`
