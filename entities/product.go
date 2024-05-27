@@ -63,6 +63,99 @@ type Variation struct {
 	Price           int                `json:"price" bson:"price"`
 }
 
+// func (p *Products) UnmarshalJSON2(data []byte) error {
+// 	var temp struct {
+// 		ID              primitive.ObjectID   `json:"_id" bson:"_id,omitempty"`
+// 		Amazing         bool                 `json:"amazing" form:"amazing" bson:"amazing"`
+// 		IsMillModel     bool                 `json:"isMillModel" bson:"isMillModel"`
+// 		ProductType     string               `json:"productType" bson:"productType"`
+// 		Quantity        int                  `json:"quantity" bson:"quantity"`
+// 		Comment         []string             `json:"comments" bson:"comments"`
+// 		Parent          primitive.ObjectID   `json:"parent" bson:"parent"`
+// 		Category        []primitive.ObjectID `json:"categories" bson:"categories"`
+// 		Tags            []string             `json:"tags" bson:"tags"`
+// 		SimilarProducts []string             `json:"similarProducts" bson:"similarProducts"`
+// 		NameFuzzy       []string             `json:"name_fuzzy" bson:"name_fuzzy"`
+// 		Images          []ImagePro           `json:"images" bson:"images"`
+// 		Name            string               `json:"name" bson:"name"`
+// 		Price           string               `json:"price" bson:"price"`
+// 		Details         string               `json:"details" bson:"details"`
+// 		DiscountPercent float64              `json:"discountPercent" bson:"discountPercent"`
+// 		Stock           string               `json:"stock" bson:"stock"`
+// 		CategoryID      string               `json:"categoryId" bson:"categoryId"`
+// 		Attributes      []Attribute          `json:"attributes" bson:"attributes"`
+// 		Slug            string               `json:"slug" bson:"slug"`
+// 		Dimensions      []Dimension          `json:"dimensions" bson:"dimensions"`
+// 		Variations      []Variation          `json:"variations,omitempty" bson:"variations,omitempty"`
+// 		CreatedAt       time.Time            `json:"createdAt" bson:"createdAt"`
+// 		UpdatedAt       time.Time            `json:"updatedAt" bson:"updatedAt"`
+// 		V               int                  `json:"__v" bson:"__v"`
+// 		ShortID         string               `json:"shortId" bson:"shortId"`
+// 		NotExist        bool                 `json:"notExist" bson:"notExist"`
+// 		BannerUrl       string               `json:"bannerUrl" bson:"bannerUrl"`
+// 		SalesNumber     int                  `json:"salesNumber" bson:"salesNumber"`
+// 	}
+
+// 	if err := json.Unmarshal(data, &temp); err != nil {
+// 		return err
+// 	}
+
+// 	p.ID = temp.ID
+// 	p.Name = temp.Name
+// 	p.CreatedAt = temp.CreatedAt
+// 	p.UpdatedAt = temp.UpdatedAt
+// 	p.V = temp.V
+
+// 	if temp.Price != "" {
+// 		priceID, err := strconv.Atoi(temp.Price)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		p.Price = priceID
+// 	}
+// 	if temp.Stock != "" {
+// 		stockID, err := strconv.Atoi(temp.Stock)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		p.Stock = stockID
+// 	}
+
+// 	return nil
+// }
+
+type Products2 struct {
+	ID              primitive.ObjectID   `json:"_id" bson:"_id,omitempty"`
+	Amazing         bool                 `json:"amazing" form:"amazing" bson:"amazing"`
+	IsMillModel     bool                 `json:"isMillModel" bson:"isMillModel"`
+	ProductType     string               `json:"productType" bson:"productType"`
+	Quantity        int                  `json:"quantity" bson:"quantity"`
+	Comment         []string             `json:"comments" bson:"comments"`
+	Parent          primitive.ObjectID   `json:"parent" bson:"parent"`
+	Category        []primitive.ObjectID `json:"categories" bson:"categories"`
+	Tags            []string             `json:"tags" bson:"tags"`
+	SimilarProducts []string             `json:"similarProducts" bson:"similarProducts"`
+	NameFuzzy       []string             `json:"name_fuzzy" bson:"name_fuzzy"`
+	Images          []ImagePro           `json:"images" bson:"images"`
+	Name            string               `json:"name" bson:"name"`
+	Price           string               `json:"price" bson:"price"`
+	Details         string               `json:"details" bson:"details"`
+	DiscountPercent float64              `json:"discountPercent" bson:"discountPercent"`
+	Stock           int                  `json:"stock" bson:"stock"`
+	CategoryID      string               `json:"categoryId" bson:"categoryId"`
+	Attributes      []Attribute          `json:"attributes" bson:"attributes"`
+	Slug            string               `json:"slug" bson:"slug"`
+	Dimensions      []Dimension          `json:"dimensions" bson:"dimensions"`
+	Variations      []Variation          `json:"variations,omitempty" bson:"variations,omitempty"`
+	CreatedAt       time.Time            `json:"createdAt" bson:"createdAt"`
+	UpdatedAt       time.Time            `json:"updatedAt" bson:"updatedAt"`
+	V               int                  `json:"__v" bson:"__v"`
+	ShortID         string               `json:"shortId" bson:"shortId"`
+	NotExist        bool                 `json:"notExist" bson:"notExist"`
+	BannerUrl       string               `json:"bannerUrl" bson:"bannerUrl"`
+	SalesNumber     int                  `json:"salesNumber" bson:"salesNumber"`
+}
+
 //**************************************************************
 type FavoritesProducts struct {
 	ID              string             `json:"_id" bson:"-"`

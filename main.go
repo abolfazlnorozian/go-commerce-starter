@@ -29,11 +29,15 @@ func main() {
 
 	// fmt.Println("Bcrypt hash of password:", hashedPassword)
 	r := gin.Default()
+	r.Use(corsMiddleware())
 	// r.Use(handleDoubleSlash())
 	r.LoadHTMLGlob("./assets/*")
 	v1 := r.Group("api")
 
 	v2 := r.Group("/")
+	v3 := r.Group("/admin/api")
+	v4 := r.Group("/admin")
+
 	v2.Use(removeDoubleSlashesMiddleware)
 
 	// err := godotenv.Load(".env")
@@ -46,8 +50,19 @@ func main() {
 	// }
 	// r.Use(corsMiddleware())
 
-	v1.Use(corsMiddleware())
-	v2.Use(corsMiddleware())
+	// r.OPTIONS("/yourEndpointPath", func(c *gin.Context) {
+	// 	// Set CORS headers
+	// 	c.Header("Access-Control-Allow-Origin", "*")
+	// 	c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	// 	c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// 	// Respond with 204 No Content
+	// 	c.Status(http.StatusNoContent)
+	// })
+
+	// v1.Use(corsMiddleware())
+	// v2.Use(corsMiddleware())
+	// v3.Use(corsMiddleware())
 
 	// Configure CORS middleware
 	// corsConfig := cors.DefaultConfig()
@@ -71,17 +86,18 @@ func main() {
 	router.State(v2)
 
 	//**********************
-	adminroute.AdminCategoryRouter(v1)
-	adminroute.AdminRoutes(v1)
-	adminroute.AdminBrandRoute(v1)
-	adminroute.AdminProductRoute(v1)
-	adminroute.Comments(v1)
-	// adminroute.UserRouteByAdmin(v1)
-	adminroute.PropertiesByAdmin(v1)
-	adminroute.ImageRouteByAdmin(v1)
-	adminroute.PageRouteByAdmin(v1)
-	adminroute.OrderRouteByAdmin(v1)
-	adminroute.CouponRoutesByAdmin(v1)
+	adminroute.AdminCategoryRouter(v3)
+	adminroute.AdminRoutes(v3)
+	adminroute.AdminBrandRoute(v3)
+	adminroute.AdminProductRoute(v3)
+	adminroute.Comments(v3)
+	adminroute.UserRouteByAdmin(v3)
+	adminroute.PropertiesByAdmin(v3)
+	adminroute.ImageRouteByAdmin(v3)
+	adminroute.PageRouteByAdmin(v3)
+	adminroute.OrderRouteByAdmin(v3)
+	adminroute.CouponRoutesByAdmin(v3)
+	adminroute.DownloaderByAdmin(v4)
 
 	go func() {
 		database.MD()
@@ -112,13 +128,6 @@ func getPort() string {
 	}
 	return port
 }
-
-// func corsMiddleware() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		// This middleware is no longer needed
-// 		c.Next()
-// 	}
-// }
 
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

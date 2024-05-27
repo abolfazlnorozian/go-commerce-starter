@@ -15,6 +15,18 @@ type Category struct {
 	Details   string              `json:"details" bson:"details"`
 	Faq       []NewFaq            `json:"faq" bson:"faq"`
 }
+type Category2 struct {
+	ID        *primitive.ObjectID `json:"_id" bson:"_id"`
+	Images    Image               `json:"image" bson:"image"`
+	Parent    primitive.ObjectID  `json:"parent" form:"parent" bson:"parent"`
+	Name      string              `json:"name" bson:"name"`
+	Ancestors []Ancestor          `json:"ancestors" bson:"ancestors"`
+	Slug      string              `json:"slug" bson:"slug"`
+	V         int                 `json:"__v" bson:"__v"`
+	Details   string              `json:"details" bson:"details"`
+	Faq       []NewFaq            `json:"faq" bson:"faq"`
+}
+
 type Image struct {
 	Url string `json:"url" bson:"url"`
 }

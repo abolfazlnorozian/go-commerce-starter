@@ -369,15 +369,3 @@ func GetUserByToken(c *gin.Context) {
 func ApiGhahvedark(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message:": "GHahvedark API"})
 }
-
-func GetAllCountUsers(c *gin.Context) {
-	var users int64
-	count, err := usersCollection.CountDocuments(c, bson.M{})
-	if err != nil {
-		// Handle error
-		return
-	}
-	users = count
-
-	c.JSON(http.StatusOK, gin.H{"count": users})
-}

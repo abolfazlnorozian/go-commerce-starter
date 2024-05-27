@@ -31,7 +31,7 @@ func ProRouter(r *gin.RouterGroup) {
 	userAuth.OPTIONS("/mix", services.PostMixesProduct)
 	userAuth.DELETE("/mix/:id", services.DeleteMixofCart)
 	userAuth.OPTIONS("/mix/:id", services.DeleteMixofCart)
-	pro.GET("/products/count", services.GetAllCountProducts)
+	// pro.GET("/products/count", services.GetAllCountProducts)
 
 }
 
@@ -88,7 +88,6 @@ func UserRoute(r *gin.RouterGroup) {
 	authUser.OPTIONS("/users/addresses", services.GetAddresses)
 	authUser.DELETE("/users/addresses/:id", services.DeleteAddressByID)
 	authUser.OPTIONS("/users/addresses/:id", services.DeleteAddressByID)
-	us.GET("/count", services.GetAllCountUsers)
 
 }
 func OrderRouter(r *gin.RouterGroup) {
@@ -108,7 +107,6 @@ func OrderRouter(r *gin.RouterGroup) {
 	// ordr.OPTIONS("/orders/checkout", services.OptionsOrers)
 
 	or.GET("/users/orders/checkout/verify", services.BackPayment)
-	or.GET("/users/orders/count", services.GetAllOrders)
 
 }
 

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"shop/database"
@@ -22,14 +21,6 @@ var adminCollection *mongo.Collection = database.GetCollection(database.DB, "adm
 
 var SECRET_KEY string = os.Getenv("SECRET_KEY")
 
-type SignedAdminDetails struct {
-	Id       primitive.ObjectID
-	Username string
-	Password string
-	Role     string
-	jwt.StandardClaims
-}
-
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
@@ -46,71 +37,39 @@ func GenerateBcryptHash(password string) (string, error) {
 	}
 	return string(hashedPassword), nil
 }
-
-func VerifyAdminPassword(userPassword string, providedPassword string) (bool, string) {
-	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
-	check := true
-	msg := ""
+func VerifyAdminPassword(providedPassword, storedPassword string) (bool, string) {
+	err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(providedPassword))
 	if err != nil {
-		msg = fmt.Sprintf("email of password is incorrect")
-		check = false
+		return false, "Email or password is incorrect"
 	}
-	return check, msg
-
+	return true, ""
 }
 
-func ValidateAdminToken(signedToken string) (claims *SignedAdminDetails, msg string) {
+// func VerifyAdminPassword(userPassword string, providedPassword string) (bool, string) {
+// 	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
+// 	check := true
+// 	msg := ""
+// 	if err != nil {
+// 		msg = fmt.Sprintf("email of password is incorrect")
+// 		check = false
+// 	}
+// 	return check, msg
 
-	// Check if the token starts with "bearer "
-	if strings.HasPrefix(signedToken, "bearer ") {
-		// Remove the "bearer " prefix
-		signedToken = strings.TrimPrefix(signedToken, "bearer ")
-	}
+// }
 
-	token, err := jwt.ParseWithClaims(
-		signedToken,
-		&SignedAdminDetails{},
-		func(token *jwt.Token) (interface{}, error) {
-			return []byte(SECRET_KEY), nil
-
-		},
-	)
-
-	if err != nil {
-		msg = err.Error()
-		return
-	}
-	claims, ok := token.Claims.(*SignedAdminDetails)
-	if !ok {
-		msg = fmt.Sprintf("the token is invalid")
-		msg = err.Error()
-		return
-	}
-
-	if claims.Role != "admin" {
-		msg = fmt.Sprintf("token is not for an admin")
-		return
-	}
-	if claims.ExpiresAt < time.Now().Local().Unix() {
-		msg = fmt.Sprintf("token is expired")
-		msg = err.Error()
-		return
-	}
-	return claims, msg
-
+type SignedAdminDetails struct {
+	Id       primitive.ObjectID `json:"id"`
+	Username string             `json:"username"`
+	Role     string             `json:"role"`
+	jwt.StandardClaims
 }
 
-func GenerateAllTokens(id primitive.ObjectID, username string, role string, password string) (signedToken string, signedRefreshToken string, err error) {
-
-	claims := &SignedAdminDetails{
-		Id:       id,
-		Username: username,
-		Role:     role,
-		Password: password,
-
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(24)).Unix(),
-		},
+func GenerateAllTokens(id primitive.ObjectID, username string, role string) (signedToken string, signedRefreshToken string, err error) {
+	claims := jwt.MapClaims{
+		"id":       id.Hex(),
+		"username": username,
+		"role":     role,
+		"type":     "token",
 	}
 	refreshClaims := &SignedAdminDetails{
 		StandardClaims: jwt.StandardClaims{
@@ -126,14 +85,38 @@ func GenerateAllTokens(id primitive.ObjectID, username string, role string, pass
 	}
 
 	return "bearer " + token, "bearer " + refreshToken, err
+
+}
+
+func ValidateAdminToken(signedToken string) (claims jwt.MapClaims, msg string) {
+	if strings.HasPrefix(signedToken, "bearer ") {
+		signedToken = strings.TrimPrefix(signedToken, "bearer ")
+	}
+
+	token, err := jwt.Parse(signedToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(SECRET_KEY), nil
+	})
+
+	if err != nil || !token.Valid {
+		msg = "Invalid token"
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		msg = "Invalid token"
+		return
+	}
+
+	return claims, ""
 }
 
 func UpdateAllTokens(signedToken string, signedRefreshToken string, role string) {
 	var ctx, cancle = context.WithTimeout(context.Background(), 100*time.Second)
 	var updateObj primitive.D
 	//append token and refreshtoken in update object
-	updateObj = append(updateObj, bson.E{Key: "token", Value: signedToken})
-	updateObj = append(updateObj, bson.E{Key: "refreshToken", Value: signedRefreshToken})
+	updateObj = append(updateObj, bson.E{Key: "adminToken", Value: signedToken})
+	updateObj = append(updateObj, bson.E{Key: "adminRefreshToken", Value: signedRefreshToken})
 	UpdatedAt, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 	updateObj = append(updateObj, bson.E{Key: "updatedAt", Value: UpdatedAt})
 	upsert := true
@@ -157,17 +140,3 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, role string)
 	return
 
 }
-
-// func VerifyPasswordSHA1(userPassword string, hashedPassword string) bool {
-// 	// Compute SHA-1 hash of the user-provided password
-// 	hashed := sha1.New()
-// 	hashed.Write([]byte(userPassword))
-// 	hashedBytes := hashed.Sum(nil)
-// 	hashedString := hex.EncodeToString(hashedBytes)
-
-// 	log.Printf("Computed hash: %s\n", hashedString)
-// 	log.Printf("Stored hashed password: %s\n", hashedPassword)
-
-// 	// Compare the computed hash with the stored hashed password
-// 	return hashedString == hashedPassword
-// }

@@ -1714,18 +1714,6 @@ func GetOrderByID(c *gin.Context) {
 // 	}
 // }
 
-func GetAllOrders(c *gin.Context) {
-	var orders int64
-	count, err := ordersCollection.CountDocuments(c, bson.M{})
-	if err != nil {
-		// Handle error
-		return
-	}
-	orders = count
-
-	c.JSON(http.StatusOK, gin.H{"count": orders})
-}
-
 type OrderPayload struct {
 	Id         interface{} `json:"_id"`
 	TotalPrice int         `json:"totalPrice"`

@@ -12,25 +12,50 @@ func AdminAuthenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		adminToken := c.Request.Header.Get("Authorization")
 		if adminToken == "" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("no Authorization header provided")})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No Authorization header provided"})
 			c.Abort()
 			return
 		}
-		aclaims, err := ValidateAdminToken(adminToken)
+
+		claims, err := ValidateAdminToken(adminToken)
 		if err != "" {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err})
 			c.Abort()
 			return
 		}
-		c.Set("username", aclaims.Username)
-		c.Set("role", aclaims.Role)
-		c.Set("password", aclaims.Password)
-		c.Set("tokenClaims", aclaims)
+
+		c.Set("username", claims["username"].(string))
+		c.Set("role", claims["role"].(string))
+		c.Set("id", claims["id"].(string))
+		c.Set("tokenClaims", claims)
 		c.Next()
-
 	}
-
 }
+
+// func AdminAuthenticate() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		adminToken := c.Request.Header.Get("Authorization")
+// 		if adminToken == "" {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("no Authorization header provided")})
+// 			c.Abort()
+// 			return
+// 		}
+// 		aclaims, err := ValidateAdminToken(adminToken)
+// 		if err != "" {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+// 			c.Abort()
+// 			return
+// 		}
+// 		c.Set("username", aclaims.Username)
+// 		c.Set("role", aclaims.Role)
+// 		c.Set("id", aclaims.Id)
+// 		// c.Set("password", aclaims.Password)
+// 		c.Set("tokenClaims", aclaims)
+// 		c.Next()
+
+// 	}
+
+// }
 func UserAuthenticate(c *gin.Context) {
 
 	clientToken := c.Request.Header.Get("authorization")

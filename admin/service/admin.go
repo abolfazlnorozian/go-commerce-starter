@@ -49,7 +49,7 @@ func LoginAdmin(c *gin.Context) {
 		return
 	}
 
-	token, refreshToken, _ := auth.GenerateAllTokens(foundAdmin.ID, foundAdmin.Username, foundAdmin.Role, foundAdmin.Password)
+	token, refreshToken, _ := auth.GenerateAllTokens(foundAdmin.ID, foundAdmin.Username, foundAdmin.Role)
 	auth.UpdateAllTokens(token, refreshToken, foundAdmin.Role)
 	err = adminCollection.FindOne(ctx, bson.M{"role": foundAdmin.Role}).Decode(&foundAdmin)
 	if err != nil {

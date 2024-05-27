@@ -1128,6 +1128,17 @@ func AddProduct() gin.HandlerFunc {
 	}
 }
 func GetAllCountProducts(c *gin.Context) {
+	// tokenClaims, exists := c.Get("tokenClaims")
+	// if !exists {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	// 	return
+	// }
+
+	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+	// 	return
+	// }
 	var products int64
 	count, err := proCollection.CountDocuments(c, bson.M{})
 	if err != nil {

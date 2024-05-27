@@ -19,17 +19,17 @@ import (
 var couponCollection *mongo.Collection = database.GetCollection(database.DB, "coupons")
 
 func GetCouponsByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
+	// tokenClaims, exists := c.Get("tokenClaims")
+	// if !exists {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	// 	return
+	// }
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
+	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+	// 	return
+	// }
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page <= 0 {
 		page = 1

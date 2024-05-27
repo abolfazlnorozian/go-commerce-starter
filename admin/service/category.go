@@ -2,7 +2,6 @@ package service
 
 import (
 	"net/http"
-	"shop/auth"
 	"shop/database"
 	"shop/entities"
 
@@ -15,20 +14,6 @@ import (
 var categoryCollection *mongo.Collection = database.GetCollection(database.DB, "categories")
 
 func FindCategoriesByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
-
-	// username := claims.Username
-	// log.Printf("Admin %s is accessing categories", username)
 
 	var categories []entities.Category
 	var result []*entities.Response
@@ -104,18 +89,8 @@ func findById(root *entities.Response, id interface{}) *entities.Response {
 }
 
 func PostCategoriesByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
-	var category entities.Category
+	var category entities.Category2
 	err := c.ShouldBindJSON(&category)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
@@ -167,17 +142,7 @@ func DeleteCategoryByAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
 		return
 	}
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 	filter := bson.M{"_id": objectID}
 	var category entities.Category
 	err = categoryCollection.FindOneAndDelete(c, filter).Decode(&category)
@@ -188,7 +153,6 @@ func DeleteCategoryByAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "category_deleted", "body": gin.H{}})
 
 }
-
 func UpdateCategoryByAdmin(c *gin.Context) {
 	id := c.Param("id")
 	objectID, err := primitive.ObjectIDFromHex(id)
@@ -196,20 +160,6 @@ func UpdateCategoryByAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
 		return
 	}
-
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
-
-	// Validate admin permissions here if needed
 
 	filter := bson.M{"_id": objectID}
 	var category entities.Category
@@ -219,26 +169,41 @@ func UpdateCategoryByAdmin(c *gin.Context) {
 		return
 	}
 
-	// Bind JSON data to category struct
-	if err := c.ShouldBindJSON(&category); err != nil {
+	// Temporary struct to bind the JSON data
+	var updateData struct {
+		Name    string            `json:"name"`
+		Details string            `json:"details"`
+		Slug    string            `json:"slug"`
+		Faq     []entities.NewFaq `json:"faq"`
+	}
+
+	// Bind JSON data to updateData struct
+	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format", "message": err.Error()})
 		return
 	}
-	for i := range category.Faq {
-		if category.Faq[i].ID == nil {
+
+	// Ensure IDs and completion status for FAQs
+	for i := range updateData.Faq {
+		if updateData.Faq[i].ID == nil {
 			newID := primitive.NewObjectID()
-			category.Faq[i].ID = &newID
+			updateData.Faq[i].ID = &newID
 		}
 		// Set Complete to true if question and answer are provided
-		if category.Faq[i].Question != "" && category.Faq[i].Answer != "" {
-			category.Faq[i].Complete = true
+		if updateData.Faq[i].Question != "" && updateData.Faq[i].Answer != "" {
+			updateData.Faq[i].Complete = true
 		} else {
-			category.Faq[i].Complete = false
+			updateData.Faq[i].Complete = false
 		}
 	}
 
-	update := bson.M{}
-	update["faq"] = category.Faq
+	// Construct the update document
+	update := bson.M{
+		"name":    updateData.Name,
+		"details": updateData.Details,
+		"slug":    updateData.Slug,
+		"faq":     updateData.Faq,
+	}
 
 	_, err = categoryCollection.UpdateOne(c, filter, bson.M{"$set": update})
 	if err != nil {
@@ -248,3 +213,49 @@ func UpdateCategoryByAdmin(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "category_updated", "body": gin.H{}})
 }
+
+// func UpdateCategoryByAdmin(c *gin.Context) {
+// 	id := c.Param("id")
+// 	objectID, err := primitive.ObjectIDFromHex(id)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+// 		return
+// 	}
+
+// 	filter := bson.M{"_id": objectID}
+// 	var category entities.Category
+// 	err = categoryCollection.FindOne(c, filter).Decode(&category)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find category", "message": err.Error()})
+// 		return
+// 	}
+
+// 	// Bind JSON data to category struct
+// 	if err := c.ShouldBindJSON(&category); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format", "message": err.Error()})
+// 		return
+// 	}
+// 	for i := range category.Faq {
+// 		if category.Faq[i].ID == nil {
+// 			newID := primitive.NewObjectID()
+// 			category.Faq[i].ID = &newID
+// 		}
+// 		// Set Complete to true if question and answer are provided
+// 		if category.Faq[i].Question != "" && category.Faq[i].Answer != "" {
+// 			category.Faq[i].Complete = true
+// 		} else {
+// 			category.Faq[i].Complete = false
+// 		}
+// 	}
+
+// 	update := bson.M{}
+// 	update["faq"] = category.Faq
+
+// 	_, err = categoryCollection.UpdateOne(c, filter, bson.M{"$set": update})
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category", "message": err.Error()})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "category_updated", "body": gin.H{}})
+// }

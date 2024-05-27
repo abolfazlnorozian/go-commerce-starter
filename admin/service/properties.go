@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"net/http"
-	"shop/auth"
 	"shop/database"
 	"shop/entities"
 	"strconv"
@@ -18,17 +17,17 @@ import (
 var propertiesCollection *mongo.Collection = database.GetCollection(database.DB, "properties")
 
 func GetPropertiesByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
+	// tokenClaims, exists := c.Get("tokenClaims")
+	// if !exists {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	// 	return
+	// }
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
+	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+	// 	return
+	// }
 	var properties []entities.Properties
 	res, err := propertiesCollection.Find(c, bson.M{"parent": nil})
 	if err != nil {
@@ -48,7 +47,7 @@ func GetPropertiesByAdmin(c *gin.Context) {
 	var simplifiedProperties []map[string]interface{}
 	for _, prop := range properties {
 		simplified := map[string]interface{}{
-			"id":     prop.ID,
+			"_id":    prop.ID,
 			"name":   prop.Name,
 			"parent": prop.Parent,
 		}
@@ -60,17 +59,6 @@ func GetPropertiesByAdmin(c *gin.Context) {
 }
 
 func GetPropertiesByIdByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	// Get the 'id' parameter from the query string
 	id := c.Query("id")
@@ -86,7 +74,7 @@ func GetPropertiesByIdByAdmin(c *gin.Context) {
 		return
 	}
 
-	var properties []entities.Properties
+	var properties []map[string]interface{}
 	res, err := propertiesCollection.Find(c, bson.M{"parent": idInt}) // Fetch documents where parent = id
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
@@ -95,7 +83,7 @@ func GetPropertiesByIdByAdmin(c *gin.Context) {
 	defer res.Close(c)
 
 	for res.Next(c) {
-		var properti entities.Properties
+		var properti map[string]interface{}
 		err := res.Decode(&properti)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
@@ -107,10 +95,11 @@ func GetPropertiesByIdByAdmin(c *gin.Context) {
 	var simplifiedProperties []map[string]interface{}
 	for _, prop := range properties {
 		simplified := map[string]interface{}{
-			"id":     prop.ID,
-			"name":   prop.Name,
-			"parent": prop.Parent,
+			"_id":    prop["_id"],
+			"name":   prop["name"],
+			"parent": prop["parent"],
 		}
+
 		simplifiedProperties = append(simplifiedProperties, simplified)
 	}
 
@@ -193,17 +182,6 @@ func getNextIDForPrpperties() (int, error) {
 	return result.MaxID + 1, nil
 }
 func PostPropertiesByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	var properties entities.Properties
 	err := c.ShouldBindJSON(&properties)
@@ -250,17 +228,6 @@ func DeletePropertiesByAdmin(c *gin.Context) {
 
 	// Create filter to match integer _id
 	filter := bson.M{"_id": intID}
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	var pro entities.Properties
 	err = propertiesCollection.FindOneAndDelete(c, filter).Decode(&pro)
@@ -284,17 +251,17 @@ func UpdatePropertiesByAdmin(c *gin.Context) {
 
 	// Create filter to match integer _id
 	filter := bson.M{"_id": intID}
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
+	// tokenClaims, exists := c.Get("tokenClaims")
+	// if !exists {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	// 	return
+	// }
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
+	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+	// 	return
+	// }
 	var pro entities.Properties
 	err = c.ShouldBindJSON(&pro)
 	if err != nil {

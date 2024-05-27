@@ -15,3 +15,17 @@ type Brands struct {
 type Urls struct {
 	Url string `json:"url" bson:"url"`
 }
+
+type Brands2 struct {
+	Id        int       `json:"_id" bson:"_id"`
+	Name      string    `json:"name" bson:"name"`
+	Details   string    `json:"details" bson:"details"`
+	Image     Urls2     `json:"image" bson:"image"`
+	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
+	V         int       `json:"__v" bson:"__v"`
+}
+
+type Urls2 struct {
+	Url string `json:"url" bson:"url"`
+}

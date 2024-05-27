@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"net/http"
 	"shop/auth"
 	"shop/database"
@@ -130,19 +132,7 @@ var proCollection *mongo.Collection = database.GetCollection(database.DB, "produ
 // }
 
 func GetAllProductsByAdmin(c *gin.Context) {
-	// pages := c.Query("page")
 
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 	filter := bson.M{}
 	// Pagination parameters from the query
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -239,40 +229,25 @@ func GetAllProductsByAdmin(c *gin.Context) {
 
 }
 func GetProductByIdByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
-
-	id := c.Param("id")
-	if id == "" {
+	slug := c.Param("id")
+	if slug == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
 		return
 	}
 
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
-		return
-	}
-
-	// Define a filter to find the product based on productId
-	filter := bson.M{"_id": objectID}
+	// Define a filter to find the product based on the slug
+	filter := bson.M{"slug": slug}
 	var product entities.Products
-	err = proCollection.FindOne(c, filter).Decode(&product)
+	err := proCollection.FindOne(c, filter).Decode(&product)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
 		return
 	}
 
+	// Initialize categoryInfo to hold category details
 	var categoryInfo []map[string]interface{}
+
+	// Iterate over each category in the product's categories field
 	for _, catID := range product.Category {
 		var category entities.Category
 		err := categoryCollection.FindOne(c, bson.M{"_id": catID}).Decode(&category)
@@ -280,6 +255,8 @@ func GetProductByIdByAdmin(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
 			return
 		}
+
+		// Create a map with the category details
 		categoryMap := map[string]interface{}{
 			"_id":       category.ID,
 			"image":     category.Images,
@@ -291,8 +268,12 @@ func GetProductByIdByAdmin(c *gin.Context) {
 			"details":   category.Details,
 			"faq":       category.Faq,
 		}
+
+		// Append the category map to categoryInfo
 		categoryInfo = append(categoryInfo, categoryMap)
 	}
+
+	// Create a map with the product details, including categoryInfo
 	productData := gin.H{
 		"notExist":        product.NotExist,
 		"amazing":         product.Amazing,
@@ -322,42 +303,278 @@ func GetProductByIdByAdmin(c *gin.Context) {
 		"__v":             product.V,
 	}
 
+	// Respond with the product details
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": productData})
 }
 
+// func GetProductByIdByAdmin(c *gin.Context) {
+
+// 	slug := c.Param("id")
+// 	if slug == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
+// 		return
+// 	}
+
+// 	// Define a filter to find the product based on productId
+// 	filter := bson.M{"slug": slug}
+// 	var product entities.Products
+// 	err := proCollection.FindOne(c, filter).Decode(&product)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
+// 		return
+// 	}
+
+// 	var categoryInfo []map[string]interface{}
+// 	for _, catID := range product.Category {
+// 		var category entities.Category
+// 		err := categoryCollection.FindOne(c, bson.M{"_id": catID}).Decode(&category)
+// 		if err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
+// 			return
+// 		}
+// 		categoryMap := map[string]interface{}{
+// 			"_id":       category.ID,
+// 			"image":     category.Images,
+// 			"parent":    category.Parent,
+// 			"name":      category.Name,
+// 			"ancestors": category.Ancestors,
+// 			"slug":      category.Slug,
+// 			"__v":       category.V,
+// 			"details":   category.Details,
+// 			"faq":       category.Faq,
+// 		}
+// 		categoryInfo = append(categoryInfo, categoryMap)
+// 	}
+// 	productData := gin.H{
+// 		"notExist":        product.NotExist,
+// 		"amazing":         product.Amazing,
+// 		"productType":     product.ProductType,
+// 		"quantity":        product.Quantity,
+// 		"comments":        product.Comment,
+// 		"parent":          product.Parent,
+// 		"categories":      categoryInfo,
+// 		"tags":            product.Tags,
+// 		"similarProducts": product.SimilarProducts,
+// 		"_id":             product.ID,
+// 		"images":          product.Images,
+// 		"name":            product.Name,
+// 		"price":           product.Price,
+// 		"details":         product.Details,
+// 		"discountPercent": product.DiscountPercent,
+// 		"bannerUrl":       product.BannerUrl,
+// 		"stock":           product.Stock,
+// 		"categoryId":      product.CategoryID,
+// 		"attributes":      product.Attributes,
+// 		"slug":            product.Slug,
+// 		"shortId":         product.ShortID,
+// 		"dimensions":      product.Dimensions,
+// 		"variations":      product.Variations,
+// 		"createdAt":       product.CreatedAt,
+// 		"updatedAt":       product.UpdatedAt,
+// 		"__v":             product.V,
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": productData})
+// }
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+func generateShortID() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 3)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
 func PostProductByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
-	var product entities.Products
-	err := c.ShouldBindJSON(&product)
-	if err != nil {
+	var input map[string]interface{}
+	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	product.ID = primitive.NewObjectID()
-	product.CreatedAt = time.Now()
-	product.UpdatedAt = time.Now()
-	var newAttributes []entities.Attribute
-	err = c.ShouldBindJSON(&newAttributes)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	for i := range newAttributes {
-		newAttributes[i].ID = primitive.NewObjectID()
-	}
-	product.Attributes = append(product.Attributes, newAttributes...)
 
-	_, err = proCollection.InsertOne(c, bson.M{
+	// Helper functions
+	getBool := func(key string, defaultValue bool) bool {
+		if value, ok := input[key]; ok {
+			if boolVal, ok := value.(bool); ok {
+				return boolVal
+			}
+		}
+		return defaultValue
+	}
+
+	getString := func(key string) string {
+		if value, ok := input[key]; ok {
+			if strVal, ok := value.(string); ok {
+				return strVal
+			}
+		}
+		return ""
+	}
+
+	getInt := func(key string) int {
+		if value, ok := input[key]; ok {
+			switch v := value.(type) {
+			case float64:
+				return int(v)
+			case string:
+				if intVal, err := strconv.Atoi(v); err == nil {
+					return intVal
+				}
+			}
+		}
+		return 0
+	}
+
+	getStringArray := func(key string) []string {
+		if value, ok := input[key]; ok {
+			if arr, ok := value.([]interface{}); ok {
+				strArr := make([]string, len(arr))
+				for i, v := range arr {
+					if strVal, ok := v.(string); ok {
+						strArr[i] = strVal
+					}
+				}
+				return strArr
+			}
+		}
+		return []string{}
+	}
+
+	getObjectIDArray := func(key string) []primitive.ObjectID {
+		if value, ok := input[key]; ok {
+			if arr, ok := value.([]interface{}); ok {
+				objIDArr := make([]primitive.ObjectID, len(arr))
+				for i, v := range arr {
+					if strVal, ok := v.(string); ok {
+						if objID, err := primitive.ObjectIDFromHex(strVal); err == nil {
+							objIDArr[i] = objID
+						}
+					}
+				}
+				return objIDArr
+			}
+		}
+		return []primitive.ObjectID{}
+	}
+
+	// getFloat64 := func(key string) float64 {
+	// 	if value, ok := input[key]; ok {
+	// 		if floatVal, ok := value.(float64); ok {
+	// 			return floatVal
+	// 		}
+	// 	}
+	// 	return 0
+	// }
+
+	getDimensions := func(key string) []entities.Dimension {
+		if value, ok := input[key]; ok {
+			if arr, ok := value.([]interface{}); ok {
+				dimensions := make([]entities.Dimension, len(arr))
+				for i, v := range arr {
+					if _, ok := v.(map[string]interface{}); ok {
+						dimensions[i] = entities.Dimension{
+							// populate dimension fields from dimMap
+						}
+					}
+				}
+				return dimensions
+			}
+		}
+		return []entities.Dimension{}
+	}
+
+	getVariations := func(key string) []entities.Variation {
+		if value, ok := input[key]; ok {
+			if arr, ok := value.([]interface{}); ok {
+				variations := make([]entities.Variation, len(arr))
+				for i, v := range arr {
+					if _, ok := v.(map[string]interface{}); ok {
+						variations[i] = entities.Variation{
+							// populate variation fields from varMap
+						}
+					}
+				}
+				return variations
+			}
+		}
+		return []entities.Variation{}
+	}
+
+	// Populate product fields
+	product := entities.Products{
+		ID:              primitive.NewObjectID(),
+		Amazing:         getBool("amazing", false),
+		IsMillModel:     getBool("isMillModel", false),
+		ProductType:     getString("productType"),
+		Quantity:        getInt("quantity"),
+		Comment:         getStringArray("comments"),
+		Parent:          primitive.NilObjectID, // default value
+		Category:        getObjectIDArray("categories"),
+		Tags:            getStringArray("tags"),
+		SimilarProducts: getStringArray("similarProducts"),
+		NameFuzzy:       getStringArray("name_fuzzy"),
+		Images:          []entities.ImagePro{}, // You should handle this similarly if needed
+		Name:            getString("name"),
+		Price:           getInt("price"),
+		Details:         getString("details"),
+		DiscountPercent: float64(getInt("discountPercent")),
+		Stock:           getInt("stock"),
+		CategoryID:      getString("categoryId"),
+		Attributes:      []entities.Attribute{}, // You should handle this similarly if needed
+		Slug:            getString("slug"),
+		Dimensions:      getDimensions("dimensions"),
+		Variations:      getVariations("variations"),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		V:               getInt("__v"),
+		ShortID:         getString("shortId"),
+		NotExist:        getBool("notExist", false),
+		BannerUrl:       getString("bannerUrl"),
+		SalesNumber:     getInt("salesNumber"),
+	}
+	// Handle attributes separately if they need to be populated
+	if attributes, ok := input["attributes"].([]interface{}); ok {
+		for _, attr := range attributes {
+			attrMap := attr.(map[string]interface{})
+			attribute := entities.Attribute{
+				ID:    primitive.NewObjectID(),
+				Key:   attrMap["key"].(string),
+				Value: attrMap["value"].(string),
+			}
+			product.Attributes = append(product.Attributes, attribute)
+		}
+	}
+
+	if product.ShortID == "" {
+		product.ShortID = generateShortID()
+	}
+
+	// Set parent to categoryId if provided
+	productCategoryID := getString("categoryId")
+	if productCategoryID != "" {
+		product.Parent, _ = primitive.ObjectIDFromHex(productCategoryID)
+	}
+
+	productCategoryID = getString("categoryId")
+	if productCategoryID != "" {
+		product.Parent, _ = primitive.ObjectIDFromHex(productCategoryID)
+
+		// Fetch category and its ancestors
+		categoryIDs, err := fetchCategoryAndAncestors(product.Parent, categoryCollection)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Add fetched categories to the product's categories field
+		product.Category = categoryIDs
+	}
+
+	// Insert the product into the collection
+	_, err := proCollection.InsertOne(c, bson.M{
 		"_id":             product.ID,
 		"notExist":        product.NotExist,
 		"amazing":         product.Amazing,
@@ -393,9 +610,60 @@ func PostProductByAdmin(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "ok_added", "body": gin.H{}})
+}
 
+func fetchCategoryAndAncestors(categoryID primitive.ObjectID, categoryCollection *mongo.Collection) ([]primitive.ObjectID, error) {
+	var categoryIDs []primitive.ObjectID
+
+	for {
+		var category entities.Category
+		err := categoryCollection.FindOne(context.Background(), bson.M{"_id": categoryID}).Decode(&category)
+		if err != nil {
+			return nil, err
+		}
+
+		categoryIDs = append(categoryIDs, *category.ID)
+
+		// Check if parent ID exists and convert it to primitive.ObjectID
+		parentID, err := getParentID(category.Parent)
+		if err != nil {
+			return nil, err
+		}
+
+		// If the parent ID is nil, we've reached the root category
+		if parentID.IsZero() {
+			break
+		}
+
+		// Move to the parent category
+		categoryID = parentID
+	}
+
+	return categoryIDs, nil
+}
+
+func getParentID(parent interface{}) (primitive.ObjectID, error) {
+	switch parentValue := parent.(type) {
+	case primitive.ObjectID:
+		return parentValue, nil
+	case nil:
+		return primitive.NilObjectID, nil
+	case map[string]interface{}:
+		oid, ok := parentValue["$oid"].(string)
+		if !ok {
+			return primitive.NilObjectID, errors.New("parent ID not found or invalid")
+		}
+		objID, err := primitive.ObjectIDFromHex(oid)
+		if err != nil {
+			return primitive.NilObjectID, err
+		}
+		return objID, nil
+	default:
+		return primitive.NilObjectID, errors.New("parent ID assertion failed")
+	}
 }
 func DeleteProductByAdmin(c *gin.Context) {
+
 	id := c.Param("id")
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
@@ -407,17 +675,7 @@ func DeleteProductByAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
 		return
 	}
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 	filter := bson.M{"_id": objectID}
 	var product entities.Products
 	err = proCollection.FindOneAndDelete(c, filter).Decode(&product)
@@ -428,28 +686,17 @@ func DeleteProductByAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "ok_delete", "body": gin.H{}})
 
 }
+
 func UpdateProductByAdmin(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
 		return
 	}
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
-		return
-	}
-
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
 		return
 	}
 
@@ -462,8 +709,197 @@ func UpdateProductByAdmin(c *gin.Context) {
 		return
 	}
 
+	// Remove _id from the updateFields if it exists
+	if _, exists := updateFields["_id"]; exists {
+		delete(updateFields, "_id")
+	}
+
+	getBool := func(key string) bool {
+		if value, ok := updateFields[key]; ok {
+			if boolVal, ok := value.(bool); ok {
+				return boolVal
+			}
+		}
+		return false
+	}
+
+	getString := func(key string) string {
+		if value, ok := updateFields[key]; ok {
+			if strVal, ok := value.(string); ok {
+				return strVal
+			}
+		}
+		return ""
+	}
+
+	getInt := func(value interface{}) int {
+		switch v := value.(type) {
+		case float64:
+			return int(v)
+		case string:
+			if intVal, err := strconv.Atoi(v); err == nil {
+				return intVal
+			}
+		}
+		return 0
+	}
+
+	getStringArray := func(key string) []string {
+		if value, ok := updateFields[key]; ok {
+			if arr, ok := value.([]interface{}); ok {
+				strArr := make([]string, len(arr))
+				for i, v := range arr {
+					if strVal, ok := v.(string); ok {
+						strArr[i] = strVal
+					}
+				}
+				return strArr
+			}
+		}
+		return []string{}
+	}
+
+	getObjectIDArray := func(key string) []primitive.ObjectID {
+		if value, ok := updateFields[key]; ok {
+			if arr, ok := value.([]interface{}); ok {
+				objIDArr := make([]primitive.ObjectID, len(arr))
+				for i, v := range arr {
+					if strVal, ok := v.(string); ok {
+						if objID, err := primitive.ObjectIDFromHex(strVal); err == nil {
+							objIDArr[i] = objID
+						}
+					}
+				}
+				return objIDArr
+			}
+		}
+		return []primitive.ObjectID{}
+	}
+
+	// Update fields processing
+	if amazing := getBool("amazing"); amazing {
+		updateFields["amazing"] = amazing
+	}
+	if isMillModel := getBool("isMillModel"); isMillModel {
+		updateFields["isMillModel"] = isMillModel
+	}
+	if productType := getString("productType"); productType != "" {
+		updateFields["productType"] = productType
+	}
+	if quantity, exists := updateFields["quantity"]; exists {
+		updateFields["quantity"] = getInt(quantity)
+	}
+	if comments := getStringArray("comments"); len(comments) > 0 {
+		updateFields["comments"] = comments
+	}
+	if categories := getObjectIDArray("categories"); len(categories) > 0 {
+		updateFields["categories"] = categories
+	}
+	if tags := getStringArray("tags"); len(tags) > 0 {
+		updateFields["tags"] = tags
+	}
+	if similarProducts := getStringArray("similarProducts"); len(similarProducts) > 0 {
+		updateFields["similarProducts"] = similarProducts
+	}
+	if nameFuzzy := getStringArray("name_fuzzy"); len(nameFuzzy) > 0 {
+		updateFields["name_fuzzy"] = nameFuzzy
+	}
+	if name := getString("name"); name != "" {
+		updateFields["name"] = name
+	}
+	if price, exists := updateFields["price"]; exists {
+		updateFields["price"] = getInt(price)
+	}
+	if details := getString("details"); details != "" {
+		updateFields["details"] = details
+	}
+	if discountPercent, exists := updateFields["discountPercent"]; exists {
+		updateFields["discountPercent"] = float64(getInt(discountPercent))
+	}
+	if stock, exists := updateFields["stock"]; exists {
+		updateFields["stock"] = getInt(stock)
+	}
+	if categoryId := getString("categoryId"); categoryId != "" {
+		if parentObjectID, err := primitive.ObjectIDFromHex(categoryId); err == nil {
+			updateFields["parent"] = parentObjectID
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'categoryId' parameter"})
+			return
+		}
+	}
+	if slug := getString("slug"); slug != "" {
+		updateFields["slug"] = slug
+	}
+	if bannerUrl := getString("bannerUrl"); bannerUrl != "" {
+		updateFields["bannerUrl"] = bannerUrl
+	}
+	if salesNumber, exists := updateFields["salesNumber"]; exists {
+		updateFields["salesNumber"] = getInt(salesNumber)
+	}
+	if shortId := getString("shortId"); shortId != "" {
+		updateFields["shortId"] = generateShortID()
+	}
+
 	// Set the updatedAt field to the current time
 	updateFields["updatedAt"] = time.Now()
+
+	// Handle dimensions
+	if dimensions, ok := updateFields["dimensions"].([]interface{}); ok {
+		// Assume Dimension is a struct with appropriate fields
+		dimensionsArray := make([]entities.Dimension, len(dimensions))
+		for i, v := range dimensions {
+			if _, ok := v.(map[string]interface{}); ok {
+				dimensionsArray[i] = entities.Dimension{
+					// populate dimension fields from dimMap
+				}
+			}
+		}
+		updateFields["dimensions"] = dimensionsArray
+	}
+
+	// Handle variations
+	if variations, ok := updateFields["variations"].([]interface{}); ok {
+		// Assume Variation is a struct with appropriate fields
+		variationsArray := make([]entities.Variation, len(variations))
+		for i, v := range variations {
+			if _, ok := v.(map[string]interface{}); ok {
+				variationsArray[i] = entities.Variation{
+					// populate variation fields from varMap
+				}
+			}
+		}
+		updateFields["variations"] = variationsArray
+	}
+
+	// Handle attributes
+	if attributes, ok := updateFields["attributes"].([]interface{}); ok {
+		var attributesArray []entities.Attribute
+		for _, attr := range attributes {
+			attrMap := attr.(map[string]interface{})
+			attribute := entities.Attribute{
+				ID:    primitive.NewObjectID(),
+				Key:   attrMap["key"].(string),
+				Value: attrMap["value"].(string),
+			}
+			attributesArray = append(attributesArray, attribute)
+		}
+		updateFields["attributes"] = attributesArray
+	}
+
+	// Fetch category and its ancestors if categoryId is provided
+	if categoryId := getString("categoryId"); categoryId != "" {
+		if parentObjectID, err := primitive.ObjectIDFromHex(categoryId); err == nil {
+			categoryIDs, err := fetchCategoryAndAncestors(parentObjectID, categoryCollection)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			updateFields["categories"] = categoryIDs
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'categoryId' parameter"})
+			return
+		}
+	}
 
 	// Construct the update query
 	updateQuery := bson.M{"$set": updateFields}
@@ -490,18 +926,6 @@ func PostDimensionByAdmin(c *gin.Context) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
-		return
-	}
-
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
 		return
 	}
 
@@ -572,18 +996,6 @@ func PostValuesByAdminToDimension(c *gin.Context) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
-		return
-	}
-
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
 		return
 	}
 
@@ -664,50 +1076,163 @@ func PostVariationToProductByAdmin(c *gin.Context) {
 		return
 	}
 
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	var variationMap map[string]interface{}
+	if err := c.ShouldBindJSON(&variationMap); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error1": err.Error()})
 		return
 	}
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
+	// Convert the fields to the appropriate types
+	variation := entities.Variation{}
+
+	if keys, ok := variationMap["keys"].([]interface{}); ok {
+		for _, key := range keys {
+			if intKey, ok := key.(float64); ok {
+				variation.Keys = append(variation.Keys, int(intKey))
+			}
+		}
 	}
 
-	var variation entities.Variation
-	err = c.ShouldBindJSON(&variation)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
-		return
+	if price, ok := variationMap["price"].(string); ok {
+		if intPrice, err := strconv.Atoi(price); err == nil {
+			variation.Price = intPrice
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'price' parameter"})
+			return
+		}
 	}
+
+	if discountPercent, ok := variationMap["discountPercent"].(string); ok {
+		if intDiscountPercent, err := strconv.Atoi(discountPercent); err == nil {
+			variation.DiscountPercent = intDiscountPercent
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'discountPercent' parameter"})
+			return
+		}
+	}
+
+	if quantity, ok := variationMap["quantity"].(string); ok {
+		if intQuantity, err := strconv.Atoi(quantity); err == nil {
+			variation.Quantity = intQuantity
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'quantity' parameter"})
+			return
+		}
+	}
+
 	var product entities.Products
 	filter := bson.M{"_id": objectID}
-	err = proCollection.FindOne(c, filter).Decode(&product)
-	if err != nil {
+	if err := proCollection.FindOne(c, filter).Decode(&product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
 		return
 	}
-	product.Variations = append(product.Variations, entities.Variation{
-		Id:              primitive.NewObjectID(),
-		DiscountPercent: variation.DiscountPercent,
-		Quantity:        variation.Quantity,
-		Keys:            variation.Keys,
-		Price:           variation.Price,
-	})
+
+	variation.Id = primitive.NewObjectID()
+	product.Variations = append(product.Variations, variation)
+
 	update := bson.M{
 		"$set": bson.M{
 			"variations": product.Variations,
 		},
 	}
+
+	if _, err := proCollection.UpdateOne(c, filter, update); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "variation_added", "body": gin.H{}})
+}
+func UpdateVariationByAdmin(c *gin.Context) {
+	productId := c.Param("id")
+	if productId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+
+	productObjectID, err := primitive.ObjectIDFromHex(productId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'productId' parameter"})
+		return
+	}
+	variationID := c.Param("variationId")
+	if variationID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		return
+	}
+	variationObjectID, err := primitive.ObjectIDFromHex(variationID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variationId' parameter"})
+		return
+	}
+
+	filter := bson.M{"_id": productObjectID}
+	var product entities.Products
+	err = proCollection.FindOne(c, filter).Decode(&product)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error1": err.Error()})
+		return
+	}
+
+	var updatedVariation struct {
+		Keys            []int  `json:"keys"`
+		DiscountPercent int    `json:"discountPercent"`
+		Quantity        string `json:"quantity"` // Initially bind as a string
+		Price           int    `json:"price"`
+	}
+
+	if err := c.ShouldBindJSON(&updatedVariation); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error2": err.Error()})
+		return
+	}
+
+	quantity, err := strconv.Atoi(updatedVariation.Quantity)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'quantity' value"})
+		return
+	}
+
+	convertedVariation := entities.Variation{
+		Keys:            updatedVariation.Keys,
+		DiscountPercent: updatedVariation.DiscountPercent,
+		Quantity:        quantity,
+		Price:           updatedVariation.Price,
+	}
+
+	// Find the variation to update
+	var found bool
+	for i, variation := range product.Variations {
+		if variation.Id == variationObjectID {
+			// Update the fields of the variation
+			product.Variations[i].Keys = convertedVariation.Keys
+			product.Variations[i].DiscountPercent = convertedVariation.DiscountPercent
+			product.Variations[i].Quantity = convertedVariation.Quantity
+			product.Variations[i].Price = convertedVariation.Price
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Variation not found"})
+		return
+	}
+
+	// Update the product with the modified variation
+	update := bson.M{
+		"$set": bson.M{
+			"variations": product.Variations,
+			"updatedAt":  time.Now(),
+		},
+	}
+
 	_, err = proCollection.UpdateOne(c, filter, update)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "varaition_added", "body": gin.H{}})
 
+	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "variations_edited", "body": gin.H{}})
 }
 
 type DimensionResponse struct {
@@ -733,17 +1258,6 @@ type PropertiesResponse struct {
 }
 
 func GetProductByIDByVAlueFalse(c *gin.Context) {
-	// Check token claims
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Token claims not found in context"})
-		return
-	}
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Invalid token claims type"})
-		return
-	}
 
 	// Check 'values' parameter
 	values := c.Query("values")
@@ -753,23 +1267,23 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 	}
 
 	// Get product ID from request parameters
-	id := c.Param("id")
-	if id == "" {
+	slug := c.Param("id")
+	if slug == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
 		return
 	}
 
 	// Convert ID string to ObjectID
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
-		return
-	}
+	// objectID, err := primitive.ObjectIDFromHex(id)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
+	// 	return
+	// }
 
 	// Fetch product from the database
 	var product entities.Products
-	filter := bson.M{"_id": objectID}
-	err = proCollection.FindOne(c, filter).Decode(&product)
+	filter := bson.M{"slug": slug}
+	err := proCollection.FindOne(c, filter).Decode(&product)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Failed to fetch product"})
 		return
@@ -873,18 +1387,6 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 
 ///*******************************DELETE VARIATION*************************************************
 func DeleteVariationFromProductByAdmin(c *gin.Context) {
-	// Check token claims
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	// Get product ID from URL parameter
 	id := c.Param("id")
@@ -955,18 +1457,6 @@ func DeleteVariationFromProductByAdmin(c *gin.Context) {
 
 //***********************DELETE DIMENSION KEY FORM DIMENSION*************************************
 func DeleteDimensionFromProductByAdmin(c *gin.Context) {
-	// Check token claims
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	// Get product ID from URL parameter
 	id := c.Param("id")
@@ -1039,17 +1529,17 @@ var mixProductCollection *mongo.Collection = database.GetCollection(database.DB,
 
 func GetMixProductsByAdmin(c *gin.Context) {
 
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
+	// tokenClaims, exists := c.Get("tokenClaims")
+	// if !exists {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	// 	return
+	// }
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
+	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+	// 	return
+	// }
 
 	var mixProducts []entities.MixProducts
 	cur, err := mixProductCollection.Find(c, bson.M{})

@@ -3,7 +3,6 @@ package service
 import (
 	"math"
 	"net/http"
-	"shop/auth"
 	"shop/entities"
 	"strconv"
 
@@ -13,17 +12,17 @@ import (
 )
 
 func GetUsersByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
+	// tokenClaims, exists := c.Get("tokenClaims")
+	// if !exists {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+	// 	return
+	// }
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
+	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+	// 	return
+	// }
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page <= 0 {
@@ -131,4 +130,16 @@ func GetUsersByAdmin(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 
+}
+
+func GetAllCountUsers(c *gin.Context) {
+	var users int64
+	count, err := userCollection.CountDocuments(c, bson.M{})
+	if err != nil {
+		// Handle error
+		return
+	}
+	users = count
+
+	c.JSON(http.StatusOK, gin.H{"count": users})
 }
