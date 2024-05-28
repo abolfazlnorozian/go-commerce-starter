@@ -7,10 +7,10 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
-	"shop/auth"
 	"shop/database"
 	"shop/entities"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -130,6 +130,52 @@ var proCollection *mongo.Collection = database.GetCollection(database.DB, "produ
 
 // 	c.JSON(http.StatusOK, response)
 // }
+func GetProducts(c *gin.Context) {
+	searchQuery := c.DefaultQuery("search", "")
+	if searchQuery != "" {
+		GetProductBySearch(c)
+	} else {
+		GetAllProductsByAdmin(c)
+	}
+
+}
+func GetProductBySearch(c *gin.Context) {
+	filter := bson.M{}
+	projection := bson.M{"name_fuzzy": 0}
+
+	searchQuery := c.DefaultQuery("search", "")
+	if searchQuery != "" {
+
+		keywords := strings.Fields(searchQuery)
+
+		regexPatterns := make([]bson.M, len(keywords))
+		for i, keyword := range keywords {
+			regexPatterns[i] = bson.M{"name_fuzzy": bson.M{"$regex": keyword, "$options": "i"}}
+		}
+
+		filter["$and"] = regexPatterns
+	}
+
+	var products []entities.Products
+	cur, err := proCollection.Find(c, filter, options.Find().SetProjection(projection))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+	defer cur.Close(c)
+	for cur.Next(c) {
+		var pro entities.Products
+		err := cur.Decode(&pro)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			return
+		}
+		products = append(products, pro)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"pages": 1, "docs": products})
+
+}
 
 func GetAllProductsByAdmin(c *gin.Context) {
 
@@ -307,75 +353,6 @@ func GetProductByIdByAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": productData})
 }
 
-// func GetProductByIdByAdmin(c *gin.Context) {
-
-// 	slug := c.Param("id")
-// 	if slug == "" {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
-// 		return
-// 	}
-
-// 	// Define a filter to find the product based on productId
-// 	filter := bson.M{"slug": slug}
-// 	var product entities.Products
-// 	err := proCollection.FindOne(c, filter).Decode(&product)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
-// 		return
-// 	}
-
-// 	var categoryInfo []map[string]interface{}
-// 	for _, catID := range product.Category {
-// 		var category entities.Category
-// 		err := categoryCollection.FindOne(c, bson.M{"_id": catID}).Decode(&category)
-// 		if err != nil {
-// 			c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
-// 			return
-// 		}
-// 		categoryMap := map[string]interface{}{
-// 			"_id":       category.ID,
-// 			"image":     category.Images,
-// 			"parent":    category.Parent,
-// 			"name":      category.Name,
-// 			"ancestors": category.Ancestors,
-// 			"slug":      category.Slug,
-// 			"__v":       category.V,
-// 			"details":   category.Details,
-// 			"faq":       category.Faq,
-// 		}
-// 		categoryInfo = append(categoryInfo, categoryMap)
-// 	}
-// 	productData := gin.H{
-// 		"notExist":        product.NotExist,
-// 		"amazing":         product.Amazing,
-// 		"productType":     product.ProductType,
-// 		"quantity":        product.Quantity,
-// 		"comments":        product.Comment,
-// 		"parent":          product.Parent,
-// 		"categories":      categoryInfo,
-// 		"tags":            product.Tags,
-// 		"similarProducts": product.SimilarProducts,
-// 		"_id":             product.ID,
-// 		"images":          product.Images,
-// 		"name":            product.Name,
-// 		"price":           product.Price,
-// 		"details":         product.Details,
-// 		"discountPercent": product.DiscountPercent,
-// 		"bannerUrl":       product.BannerUrl,
-// 		"stock":           product.Stock,
-// 		"categoryId":      product.CategoryID,
-// 		"attributes":      product.Attributes,
-// 		"slug":            product.Slug,
-// 		"shortId":         product.ShortID,
-// 		"dimensions":      product.Dimensions,
-// 		"variations":      product.Variations,
-// 		"createdAt":       product.CreatedAt,
-// 		"updatedAt":       product.UpdatedAt,
-// 		"__v":             product.V,
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": productData})
-// }
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -388,6 +365,7 @@ func generateShortID() string {
 	}
 	return string(b)
 }
+
 func PostProductByAdmin(c *gin.Context) {
 	var input map[string]interface{}
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -1529,18 +1507,6 @@ var mixProductCollection *mongo.Collection = database.GetCollection(database.DB,
 
 func GetMixProductsByAdmin(c *gin.Context) {
 
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
-
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
-
 	var mixProducts []entities.MixProducts
 	cur, err := mixProductCollection.Find(c, bson.M{})
 	if err != nil {
@@ -1564,17 +1530,6 @@ func GetMixProductsByAdmin(c *gin.Context) {
 }
 
 func PostMixByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	var mix entities.MixProducts
 	err := c.ShouldBindJSON(&mix)
@@ -1582,37 +1537,22 @@ func PostMixByAdmin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
 		return
 	}
+
 	mix.ID = primitive.NewObjectID()
 	mix.CreatedAt = time.Now()
 	mix.UpdatedAt = time.Now()
-	_, err = mixProductCollection.InsertOne(c, bson.M{
-		"_id":       mix.ID,
-		"name":      mix.Name,
-		"image":     mix.Images,
-		"price":     mix.Price,
-		"createdAt": mix.CreatedAt,
-		"updatedAt": mix.UpdatedAt,
-		"__v":       mix.V,
-	})
+
+	_, err = mixProductCollection.InsertOne(c, mix)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "mix_product"})
 }
 
 func DeleteMixBYAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 	id := c.Param("id")
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})

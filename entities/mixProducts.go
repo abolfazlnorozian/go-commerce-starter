@@ -1,6 +1,8 @@
 package entities
 
 import (
+	"encoding/json"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,4 +19,23 @@ type MixProducts struct {
 }
 type UrlImage struct {
 	Url string `json:"url" bson:"url"`
+}
+
+func (mp *MixProducts) UnmarshalJSON(data []byte) error {
+	type Alias MixProducts
+	aux := &struct {
+		Price string `json:"price"`
+		*Alias
+	}{
+		Alias: (*Alias)(mp),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	price, err := strconv.Atoi(aux.Price)
+	if err != nil {
+		return err
+	}
+	mp.Price = price
+	return nil
 }

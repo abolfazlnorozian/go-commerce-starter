@@ -25,17 +25,6 @@ import (
 var imgCollection *mongo.Collection = database.GetCollection(database.DB, "uploadschemas")
 
 func FindAllImagesByAdmin(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
-
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
 
 	var images []entities.Images
 
@@ -117,18 +106,8 @@ func generateRandomFilename() string {
 }
 
 func UploadImageByAdmin(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
 
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
-	file, header, err := c.Request.FormFile("file")
+	file, header, err := c.Request.FormFile("image")
 	if err != nil {
 		c.String(http.StatusBadRequest, fmt.Sprintf("file err : %s", err.Error()))
 		return
@@ -221,22 +200,13 @@ func DeleteImageByAdmin(c *gin.Context) {
 		return
 	}
 
+	log.Printf("Received ID: %s", id)
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
-		return
-	}
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		c.JSON(http.StatusBadRequest, gin.H{"error2": err.Error()})
 		return
 	}
 
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 	filter := bson.M{"_id": objectID}
 	var image entities.Images
 	err = imgCollection.FindOneAndDelete(c, filter).Decode(&image)

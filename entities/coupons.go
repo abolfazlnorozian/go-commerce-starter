@@ -16,7 +16,7 @@ type Coupons struct {
 	DateExpired     time.Time          `json:"dateExpired" bson:"dateExpired"`
 	To              string             `json:"to" bson:"to"`
 	User            string             `json:"user" bson:"user"`
-	Category        string             `json:"category" bson:"category"`
+	Category        primitive.ObjectID `json:"category" bson:"category"`
 	CreatedAt       time.Time          `json:"createdAt" bson:"createdAt"`
 	UpdatedAt       time.Time          `json:"updatedAt" bson:"updatedAt"`
 	V               int                `json:"__v" bson:"__v"`

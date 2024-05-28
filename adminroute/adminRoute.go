@@ -15,7 +15,9 @@ func AdminProductRoute(r *gin.RouterGroup) {
 
 	count.GET("/products/count", services.GetAllCountProducts)
 
-	p.GET("/products", service.GetAllProductsByAdmin)
+	// p.GET("/products", service.GetAllProductsByAdmin)
+
+	p.GET("/products", service.GetProducts)
 
 	pro.POST("/products", service.PostProductByAdmin)
 	pro.DELETE("/products/:id", service.DeleteProductByAdmin)
@@ -119,6 +121,7 @@ func UserRouteByAdmin(r *gin.RouterGroup) {
 
 	us := r.Group("/users")
 	co.GET("/users", service.GetUsersByAdmin)
+	us.GET("/:id/information", service.GetInformationUserByAdmin)
 
 	us.GET("/count", service.GetAllCountUsers)
 
@@ -184,7 +187,7 @@ func OrderRouteByAdmin(r *gin.RouterGroup) {
 	ord.GET("/users/orders", service.GetOrdersByAdmin)
 
 	ord.GET("/users/orders/:id", service.GetOrderByIdByAdmin)
-	ord.GET("/users/:id/information", service.GetInformationUserByAdmin)
+
 	ord.POST("/users/orders/:id/status", service.UpdateSatusOrderByAdmin)
 	or.GET("/users/orders/count", service.GetAllOrders)
 }
@@ -193,7 +196,7 @@ func CouponRoutesByAdmin(r *gin.RouterGroup) {
 
 	coupon.GET("/coupons", service.GetCouponsByAdmin)
 
-	coupon.POST("/coupons", service.PostCopounByAdmin)
+	coupon.POST("/coupons", service.PostCouponByAdmin)
 	coupon.DELETE("/coupons/:id", service.DeleteCouponByAdmin)
 	coupon.PUT("/coupons/:id", service.UpdateCouponByAdmin)
 }

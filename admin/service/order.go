@@ -1,9 +1,10 @@
 package service
 
 import (
+	"fmt"
+	"log"
 	"math"
 	"net/http"
-	"shop/auth"
 	"shop/database"
 	"shop/entities"
 	"strconv"
@@ -18,17 +19,6 @@ import (
 var ordersCollection *mongo.Collection = database.GetCollection(database.DB, "orders")
 
 func GetOrdersByAdmin(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
-
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page <= 0 {
@@ -42,7 +32,8 @@ func GetOrdersByAdmin(c *gin.Context) {
 
 	// Get the status query parameter
 	status := c.DefaultQuery("status", "")
-	paymentStatus := c.DefaultQuery("paymentStatus", "")
+	paymentStatus := c.DefaultQuery("paymentstatus", "")
+	log.Printf("Received query params - page: %d, status: %s, paymentStatus: %s", page, status, paymentStatus)
 
 	// Build the filter for the MongoDB query
 	filter := bson.M{}
@@ -52,7 +43,7 @@ func GetOrdersByAdmin(c *gin.Context) {
 	if paymentStatus != "" {
 		filter["paymentStatus"] = paymentStatus
 	}
-
+	log.Printf("Constructed filter: %+v", filter)
 	// Query MongoDB with pagination and status filter
 	cur, err := ordersCollection.Find(c, filter, &options.FindOptions{
 		Limit: &limit64,
@@ -133,17 +124,6 @@ type product struct {
 }
 
 func GetOrderByIdByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	// Get the 'id' parameter from the query string
 	id := c.Param("id")
@@ -237,19 +217,9 @@ func GetOrderByIdByAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "order", "body": response})
 }
 func GetInformationUserByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	id := c.Param("id")
+	fmt.Println("ID:", id)
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing 'id' query parameter"})
 		return
@@ -257,7 +227,7 @@ func GetInformationUserByAdmin(c *gin.Context) {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{"error2": err.Error()})
 		return
 	}
 
@@ -296,7 +266,7 @@ func GetInformationUserByAdmin(c *gin.Context) {
 				"state":      order["address"].(map[string]interface{})["state"],
 			},
 			"createdAt": order["createdAt"],
-			"paymentId": order["paymentId"],
+			// "paymentId": order["paymentId"],
 		}
 		orders = append(orders, orderMap)
 	}
@@ -326,17 +296,6 @@ func GetInformationUserByAdmin(c *gin.Context) {
 }
 
 func UpdateSatusOrderByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	id := c.Param("id")
 	if id == "" {

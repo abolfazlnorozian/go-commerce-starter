@@ -17,17 +17,7 @@ import (
 var propertiesCollection *mongo.Collection = database.GetCollection(database.DB, "properties")
 
 func GetPropertiesByAdmin(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
 
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
 	var properties []entities.Properties
 	res, err := propertiesCollection.Find(c, bson.M{"parent": nil})
 	if err != nil {
@@ -107,17 +97,6 @@ func GetPropertiesByIdByAdmin(c *gin.Context) {
 }
 
 func GetPropertiesById(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
-
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
 
 	// Get the 'id' parameter from the query string
 	id := c.Query("id")

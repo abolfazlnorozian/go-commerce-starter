@@ -3,7 +3,6 @@ package service
 import (
 	"math"
 	"net/http"
-	"shop/auth"
 	"shop/database"
 	"shop/entities"
 	"strconv"
@@ -21,17 +20,6 @@ var commentCollection *mongo.Collection = database.GetCollection(database.DB, "c
 var userCollection *mongo.Collection = database.GetCollection(database.DB, "users")
 
 func GetCommentByAdmin(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
-
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if page <= 0 {
@@ -137,17 +125,6 @@ func GetCommentByAdmin(c *gin.Context) {
 
 }
 func CommentGetProductByIDByAdmin(c *gin.Context) {
-	tokenClaims, exists := c.Get("tokenClaims")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-		return
-	}
-
-	_, ok := tokenClaims.(*auth.SignedAdminDetails)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-		return
-	}
 
 	id := c.Param("id")
 	if id == "" {
@@ -177,17 +154,7 @@ func CommentGetProductByIDByAdmin(c *gin.Context) {
 }
 
 func UpdateCommentByAdmin(c *gin.Context) {
-	// tokenClaims, exists := c.Get("tokenClaims")
-	// if !exists {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
-	// 	return
-	// }
 
-	// _, ok := tokenClaims.(*auth.SignedAdminDetails)
-	// if !ok {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
-	// 	return
-	// }
 	id := c.Param("id")
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
@@ -196,7 +163,7 @@ func UpdateCommentByAdmin(c *gin.Context) {
 
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{"error2": "Invalid 'id' parameter"})
 		return
 	}
 
