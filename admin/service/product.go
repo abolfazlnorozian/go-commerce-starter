@@ -1278,7 +1278,6 @@ func UpdateVariationByAdmin(c *gin.Context) {
 	var updatedVariation entities.Variation
 	var isUpdated bool
 
-	// Update discountPercent if provided
 	if len(updatedFields.DiscountPercent) > 0 {
 		var discountPercent int
 		if err := json.Unmarshal(updatedFields.DiscountPercent, &discountPercent); err != nil {
@@ -1297,7 +1296,6 @@ func UpdateVariationByAdmin(c *gin.Context) {
 		isUpdated = true
 	}
 
-	// Update quantity if provided
 	if len(updatedFields.Quantity) > 0 {
 		var quantity int
 		if err := json.Unmarshal(updatedFields.Quantity, &quantity); err != nil {
@@ -1316,7 +1314,6 @@ func UpdateVariationByAdmin(c *gin.Context) {
 		isUpdated = true
 	}
 
-	// Update price if provided
 	if len(updatedFields.Price) > 0 {
 		var price int
 		if err := json.Unmarshal(updatedFields.Price, &price); err != nil {
@@ -1335,17 +1332,15 @@ func UpdateVariationByAdmin(c *gin.Context) {
 		isUpdated = true
 	}
 
-	// Check if any field was updated
 	if !isUpdated {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No fields to update"})
 		return
 	}
 
-	// Find the variation to update
 	var found bool
 	for i, variation := range product.Variations {
 		if variation.Id == variationObjectID {
-			// Update the fields of the variation
+
 			if len(updatedFields.DiscountPercent) > 0 {
 				product.Variations[i].DiscountPercent = updatedVariation.DiscountPercent
 			}
@@ -1365,7 +1360,6 @@ func UpdateVariationByAdmin(c *gin.Context) {
 		return
 	}
 
-	// Update the product with the modified variation
 	update := bson.M{
 		"$set": bson.M{
 			"variations": product.Variations,
@@ -1485,7 +1479,7 @@ type DimensionResponse struct {
 	ID     string              `json:"_id,omitempty"`
 	Key    *PropertiesResponse `json:"key"`
 }
-type VariationResponae struct {
+type VariationResponse struct {
 	Keys []PropertiesResponse `json:"keys" bson:"keys"`
 	// DiscountPercent int                   `json:"discountPercent" bson:"discountPercent"`
 	// Quantity        int                   `json:"quantity" bson:"quantity"`
@@ -1502,6 +1496,48 @@ type PropertiesResponse struct {
 	V         int       `json:"__v" bson:"__v"`
 }
 
+type AttributeResponse struct {
+	ID    string `json:"_id,omitempty"` // The ID as a string
+	Key   string `json:"key"`           // The attribute key
+	Value string `json:"value"`         // The attribute value
+}
+type CategoryResponse struct {
+	ID        string             `json:"_id"`       // The ID as a string
+	Images    ImageResponse      `json:"image"`     // Image response structure
+	Parent    interface{}        `json:"parent"`    // Keeping this as interface{} to support various types
+	Name      string             `json:"name"`      // The category name
+	Ancestors []AncestorResponse `json:"ancestors"` // List of ancestor responses
+	Slug      string             `json:"slug"`      // Slug for the category
+	Details   string             `json:"details"`   // Category details
+	Faq       []NewFaqResponse   `json:"faq"`       // List of FAQ responses
+}
+
+type ImageResponse struct {
+	Url string `json:"url"` // The URL for the image
+}
+
+type NewFaqResponse struct {
+	ID       string `json:"_id,omitempty"` // The ID as a string
+	Answer   string `json:"answer"`        // The answer text
+	Complete bool   `json:"completed"`     // The completion status
+	Question string `json:"question"`      // The question text
+}
+
+type AncestorResponse struct {
+	ID   string `json:"_id,omitempty"` // The ID as a string
+	Name string `json:"name"`          // The name of the ancestor
+	Slug string `json:"slug"`          // The slug for the ancestor
+}
+
+type VariationName struct {
+	ID        int       `json:"_id"`
+	Parent    int       `json:"parent"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Version   int       `json:"__v"`
+}
+
 func GetProductByIDByVAlueFalse(c *gin.Context) {
 
 	// Check 'values' parameter
@@ -1511,19 +1547,12 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 		return
 	}
 
-	// Get product ID from request parameters
+	// Get product slug from request parameters
 	slug := c.Param("id")
 	if slug == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
 		return
 	}
-
-	// Convert ID string to ObjectID
-	// objectID, err := primitive.ObjectIDFromHex(id)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
-	// 	return
-	// }
 
 	// Fetch product from the database
 	var product entities.Products
@@ -1534,18 +1563,15 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 		return
 	}
 
-	// Prepare response dimensions
+	// Prepare dimensions response
 	var dimensionResponses []DimensionResponse
 	for _, dim := range product.Dimensions {
-		// Fetch properties document from the properties collection
 		var properties entities.Properties
 		err = propertiesCollection.FindOne(c, bson.M{"_id": dim.Key}).Decode(&properties)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch dimension key information"})
 			return
 		}
-
-		// Create a DimensionResponse using the fetched properties
 		dimensionResponse := DimensionResponse{
 			Values: dim.Values,
 			ID:     dim.ID.Hex(),
@@ -1560,9 +1586,9 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 		}
 		dimensionResponses = append(dimensionResponses, dimensionResponse)
 	}
-	var variationsResponses []VariationResponae
+	var variationNames []VariationName
 	for _, variat := range product.Variations {
-		// Fetch properties documents from the properties collection
+		// Find properties based on the variation's keys
 		cursor, err := propertiesCollection.Find(c, bson.M{"_id": bson.M{"$in": variat.Keys}})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch variation keys information"})
@@ -1570,42 +1596,136 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 		}
 		defer cursor.Close(c)
 
-		var properties []*entities.Properties
+		// Process each property
 		for cursor.Next(c) {
 			var prop entities.Properties
 			if err := cursor.Decode(&prop); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to decode properties document"})
 				return
 			}
-			properties = append(properties, &prop)
+
+			// Create a VariationName from the property
+			variationName := VariationName{
+				ID:        prop.ID,
+				Parent:    *prop.Parent,
+				Name:      prop.Name,
+				CreatedAt: prop.CreatedAt,
+				UpdatedAt: prop.UpdatedAt,
+				Version:   prop.V,
+			}
+
+			// Add to the slice
+			variationNames = append(variationNames, variationName)
 		}
 		if err := cursor.Err(); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Cursor error"})
 			return
 		}
+	}
 
-		// Create VariationResponse using the fetched properties
-		var variationKeys []PropertiesResponse
-		for _, prop := range properties {
-			variationKey := PropertiesResponse{
-				ID:        prop.ID,
-				Parent:    prop.Parent,
-				Name:      prop.Name,
-				CreatedAt: prop.CreatedAt,
-				UpdatedAt: prop.UpdatedAt,
-				V:         prop.V,
+	// Ensure variationNames is not nil
+	if variationNames == nil {
+		variationNames = make([]VariationName, 0)
+	}
+
+	// // Prepare variations response
+	// var variationsResponses []VariationResponse
+	// for _, variat := range product.Variations {
+	// 	cursor, err := propertiesCollection.Find(c, bson.M{"_id": bson.M{"$in": variat.Keys}})
+	// 	if err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch variation keys information"})
+	// 		return
+	// 	}
+	// 	defer cursor.Close(c)
+
+	// 	var properties []*entities.Properties
+	// 	for cursor.Next(c) {
+	// 		var prop entities.Properties
+	// 		if err := cursor.Decode(&prop); err != nil {
+	// 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to decode properties document"})
+	// 			return
+	// 		}
+	// 		properties = append(properties, &prop)
+	// 	}
+	// 	if err := cursor.Err(); err != nil {
+	// 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Cursor error"})
+	// 		return
+	// 	}
+
+	// 	var variationKeys []PropertiesResponse
+	// 	for _, prop := range properties {
+	// 		variationKey := PropertiesResponse{
+	// 			ID:        prop.ID,
+	// 			Parent:    prop.Parent,
+	// 			Name:      prop.Name,
+	// 			CreatedAt: prop.CreatedAt,
+	// 			UpdatedAt: prop.UpdatedAt,
+	// 			V:         prop.V,
+	// 		}
+	// 		variationKeys = append(variationKeys, variationKey)
+	// 	}
+	// 	variationResponse := VariationResponse{
+	// 		Keys: variationKeys,
+	// 	}
+	// 	variationsResponses = append(variationsResponses, variationResponse)
+	// }
+	// if variationsResponses == nil {
+	// 	variationsResponses = make([]VariationResponse, 0)
+	// }
+
+	var categoriesResponses []CategoryResponse
+	for _, categoryID := range product.Category {
+		var category entities.Category
+		err = categoryCollection.FindOne(c, bson.M{"_id": categoryID}).Decode(&category)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch category information"})
+			return
+		}
+
+		// Map category to CategoryResponse
+		categoryResponse := CategoryResponse{
+			ID:      category.ID.Hex(),
+			Name:    category.Name,
+			Slug:    category.Slug,
+			Details: category.Details,
+			Images:  ImageResponse{Url: category.Images.Url},
+		}
+
+		// Map ancestors
+		for _, ancestor := range category.Ancestors {
+			ancestorResponse := AncestorResponse{
+				ID:   ancestor.ID.Hex(),
+				Name: ancestor.Name,
+				Slug: ancestor.Slug,
 			}
-			variationKeys = append(variationKeys, variationKey)
+			categoryResponse.Ancestors = append(categoryResponse.Ancestors, ancestorResponse)
 		}
-		variationResponse := VariationResponae{
-			Keys: variationKeys,
+
+		// Map FAQs
+		for _, faq := range category.Faq {
+			faqResponse := NewFaqResponse{
+				ID:       faq.ID.Hex(),
+				Answer:   faq.Answer,
+				Complete: faq.Complete,
+				Question: faq.Question,
+			}
+			categoryResponse.Faq = append(categoryResponse.Faq, faqResponse)
 		}
-		variationsResponses = append(variationsResponses, variationResponse)
+
+		categoriesResponses = append(categoriesResponses, categoryResponse)
 	}
-	if variationsResponses == nil {
-		variationsResponses = make([]VariationResponae, 0)
+	// Prepare attributes response
+	var attributesResponses []AttributeResponse
+	for _, attr := range product.Attributes {
+		attributeResponse := AttributeResponse{
+			ID:    attr.ID.Hex(),
+			Key:   attr.Key,
+			Value: attr.Value,
+		}
+		attributesResponses = append(attributesResponses, attributeResponse)
 	}
-	// Construct the response JSON similar to the provided format
+
+	// Construct the response JSON
 	responseBody := gin.H{
 		"_id":             product.ID.Hex(),
 		"dimensions":      dimensionResponses,
@@ -1613,22 +1733,150 @@ func GetProductByIDByVAlueFalse(c *gin.Context) {
 		"productType":     product.ProductType,
 		"price":           product.Price,
 		"variations":      product.Variations,
-		"categories":      product.Category,
+		"categories":      categoriesResponses,
 		"categoryId":      product.CategoryID,
-		"attributes":      product.Attributes,
+		"attributes":      attributesResponses,
 		"tags":            product.Tags,
 		"bannerUrl":       product.BannerUrl,
 		"slug":            product.Slug,
 		"discountPercent": product.DiscountPercent,
 		"amazing":         product.Amazing,
 		"images":          product.Images,
-		"variationNames":  variationsResponses,
+		"variationNames":  variationNames,
 		"shortId":         product.ShortID,
 	}
 
 	// Send the response
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": responseBody})
 }
+
+// func GetProductByIDByVAlueFalse(c *gin.Context) {
+
+// 	// Check 'values' parameter
+// 	values := c.Query("values")
+// 	if values != "false" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'values' parameter"})
+// 		return
+// 	}
+
+// 	// Get product ID from request parameters
+// 	slug := c.Param("id")
+// 	if slug == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
+// 		return
+// 	}
+
+// 	// Convert ID string to ObjectID
+// 	// objectID, err := primitive.ObjectIDFromHex(id)
+// 	// if err != nil {
+// 	// 	c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Invalid 'id' parameter"})
+// 	// 	return
+// 	// }
+
+// 	// Fetch product from the database
+// 	var product entities.Products
+// 	filter := bson.M{"slug": slug}
+// 	err := proCollection.FindOne(c, filter).Decode(&product)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Failed to fetch product"})
+// 		return
+// 	}
+
+// 	// Prepare response dimensions
+// 	var dimensionResponses []DimensionResponse
+// 	for _, dim := range product.Dimensions {
+// 		// Fetch properties document from the properties collection
+// 		var properties entities.Properties
+// 		err = propertiesCollection.FindOne(c, bson.M{"_id": dim.Key}).Decode(&properties)
+// 		if err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch dimension key information"})
+// 			return
+// 		}
+
+// 		// Create a DimensionResponse using the fetched properties
+// 		dimensionResponse := DimensionResponse{
+// 			Values: dim.Values,
+// 			ID:     dim.ID.Hex(),
+// 			Key: &PropertiesResponse{
+// 				ID:        properties.ID,
+// 				Parent:    properties.Parent,
+// 				Name:      properties.Name,
+// 				CreatedAt: properties.CreatedAt,
+// 				UpdatedAt: properties.UpdatedAt,
+// 				V:         properties.V,
+// 			},
+// 		}
+// 		dimensionResponses = append(dimensionResponses, dimensionResponse)
+// 	}
+// 	var variationsResponses []VariationResponae
+// 	for _, variat := range product.Variations {
+// 		// Fetch properties documents from the properties collection
+// 		cursor, err := propertiesCollection.Find(c, bson.M{"_id": bson.M{"$in": variat.Keys}})
+// 		if err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to fetch variation keys information"})
+// 			return
+// 		}
+// 		defer cursor.Close(c)
+
+// 		var properties []*entities.Properties
+// 		for cursor.Next(c) {
+// 			var prop entities.Properties
+// 			if err := cursor.Decode(&prop); err != nil {
+// 				c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Failed to decode properties document"})
+// 				return
+// 			}
+// 			properties = append(properties, &prop)
+// 		}
+// 		if err := cursor.Err(); err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Cursor error"})
+// 			return
+// 		}
+
+// 		// Create VariationResponse using the fetched properties
+// 		var variationKeys []PropertiesResponse
+// 		for _, prop := range properties {
+// 			variationKey := PropertiesResponse{
+// 				ID:        prop.ID,
+// 				Parent:    prop.Parent,
+// 				Name:      prop.Name,
+// 				CreatedAt: prop.CreatedAt,
+// 				UpdatedAt: prop.UpdatedAt,
+// 				V:         prop.V,
+// 			}
+// 			variationKeys = append(variationKeys, variationKey)
+// 		}
+// 		variationResponse := VariationResponae{
+// 			Keys: variationKeys,
+// 		}
+// 		variationsResponses = append(variationsResponses, variationResponse)
+// 	}
+// 	if variationsResponses == nil {
+// 		variationsResponses = make([]VariationResponae, 0)
+// 	}
+// 	// Construct the response JSON similar to the provided format
+// 	responseBody := gin.H{
+// 		"_id":             product.ID.Hex(),
+// 		"dimensions":      dimensionResponses,
+// 		"name":            product.Name,
+// 		"productType":     product.ProductType,
+// 		"price":           product.Price,
+// 		"variations":      product.Variations,
+// 		"categories":      product.Category,
+// 		"categoryId":      product.CategoryID,
+// 		"attributes":      product.Attributes,
+// 		"tags":            product.Tags,
+// 		"bannerUrl":       product.BannerUrl,
+// 		"slug":            product.Slug,
+// 		"discountPercent": product.DiscountPercent,
+// 		"amazing":         product.Amazing,
+// 		"images":          product.Images,
+// 		"variationNames":  variationsResponses,
+// 		"shortId":         product.ShortID,
+// 	}
+
+// 	// Send the response
+// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": responseBody})
+// }
 
 ///*******************************DELETE VARIATION*************************************************
 func DeleteVariationFromProductByAdmin(c *gin.Context) {

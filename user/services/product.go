@@ -38,64 +38,6 @@ type DimensionResponse struct {
 	ID     primitive.ObjectID    `json:"_id,omitempty" bson:"_id,omitempty"`
 }
 
-// func GetProductBySlug(c *gin.Context) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	slug := c.Param("slug")
-// 	var proWithCategories ProductWithCategories
-
-// 	err := proCollection.FindOne(ctx, bson.M{"slug": slug}).Decode(&proWithCategories.Products)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
-// 		return
-// 	}
-
-// 	// Fetch category details and store them in the Categories field
-// 	categories, err := fetchCategoryDetails(ctx, proWithCategories.Category)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
-// 		return
-// 	}
-
-// 	// Assign the fetched categories to the Categories field
-// 	proWithCategories.Categories = categories
-
-// 	var pro []entities.Dimension
-
-// 	for _, value := range proWithCategories.Dimensions {
-// 		pro = append(pro, entities.Dimension{
-// 			Key:    value.Key,
-// 			Values: value.Values,
-// 			ID:     value.ID,
-// 		})
-// 	}
-
-// 	dimensions, err := fetchPropertyDetails(ctx, pro)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error3": err.Error()})
-// 		return
-// 	}
-
-// 	proWithCategories.Dimension = dimensions
-// 	// Sort variations by quantity (1 first, then 0)
-// 	sort.Slice(proWithCategories.Variations, func(i, j int) bool {
-// 		return proWithCategories.Variations[i].Quantity > proWithCategories.Variations[j].Quantity
-// 	})
-
-// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories})
-// }
-
-// ProRouter provides ...
-// @Summary Get products by slug
-// @Description Get products by slug
-// @Tags products
-// @Accept json
-// @Produce json
-// @Param slug path string true "Product Slug"
-// @Success 200 {object} services.ProductWithCategories
-// @Router /api/products/{slug} [get]
-
 func GetProductBySlug(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -110,7 +52,7 @@ func GetProductBySlug(c *gin.Context) {
 	}
 
 	// Fetch category details and store them in the Categories field
-	categories, err := fetchCategoryDetails(ctx, proWithCategories.Products.Category)
+	categories, err := fetchCategoryDetails(ctx, proWithCategories.Category)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
 		return
@@ -119,7 +61,17 @@ func GetProductBySlug(c *gin.Context) {
 	// Assign the fetched categories to the Categories field
 	proWithCategories.Categories = categories
 
-	dimensions, err := fetchPropertyDetails(ctx, proWithCategories.Products.Dimensions)
+	var pro []entities.Dimension
+
+	for _, value := range proWithCategories.Dimensions {
+		pro = append(pro, entities.Dimension{
+			Key:    value.Key,
+			Values: value.Values,
+			ID:     value.ID,
+		})
+	}
+
+	dimensions, err := fetchPropertyDetails(ctx, pro)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error3": err.Error()})
 		return
@@ -127,12 +79,60 @@ func GetProductBySlug(c *gin.Context) {
 
 	proWithCategories.Dimension = dimensions
 	// Sort variations by quantity (1 first, then 0)
-	sort.Slice(proWithCategories.Products.Variations, func(i, j int) bool {
-		return proWithCategories.Products.Variations[i].Quantity > proWithCategories.Products.Variations[j].Quantity
+	sort.Slice(proWithCategories.Variations, func(i, j int) bool {
+		return proWithCategories.Variations[i].Quantity > proWithCategories.Variations[j].Quantity
 	})
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories})
 }
+
+// ProRouter provides ...
+// @Summary Get products by slug
+// @Description Get products by slug
+// @Tags products
+// @Accept json
+// @Produce json
+// @Param slug path string true "Product Slug"
+// @Success 200 {object} services.ProductWithCategories
+// @Router /api/products/{slug} [get]
+
+// func GetProductBySlug(c *gin.Context) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// 	defer cancel()
+
+// 	slug := c.Param("slug")
+// 	var proWithCategories ProductWithCategories
+
+// 	err := proCollection.FindOne(ctx, bson.M{"slug": slug}).Decode(&proWithCategories.Products)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
+// 		return
+// 	}
+
+// 	// Fetch category details and store them in the Categories field
+// 	categories, err := fetchCategoryDetails(ctx, proWithCategories.Products.Category)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
+// 		return
+// 	}
+
+// 	// Assign the fetched categories to the Categories field
+// 	proWithCategories.Categories = categories
+
+// 	dimensions, err := fetchPropertyDetails(ctx, proWithCategories.Products.Dimensions)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error3": err.Error()})
+// 		return
+// 	}
+
+// 	proWithCategories.Dimension = dimensions
+// 	// Sort variations by quantity (1 first, then 0)
+// 	sort.Slice(proWithCategories.Products.Variations, func(i, j int) bool {
+// 		return proWithCategories.Products.Variations[i].Quantity > proWithCategories.Products.Variations[j].Quantity
+// 	})
+
+// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories})
+// }
 
 func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension) ([]DimensionResponse, error) {
 	var dimensionResponses []DimensionResponse

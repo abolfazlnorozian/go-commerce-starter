@@ -127,7 +127,7 @@ func UploadImageByAdmin(c *gin.Context) {
 
 	}
 
-	filepath := "/uploads/" + filename
+	filepath := "uploads/" + filename
 	var img entities.Images
 	if err := c.Bind(&img); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
