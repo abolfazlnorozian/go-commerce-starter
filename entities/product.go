@@ -27,7 +27,7 @@ type Products struct {
 	DiscountPercent float64              `json:"discountPercent" bson:"discountPercent"`
 	Stock           int                  `json:"stock" bson:"stock"`
 	CategoryID      string               `json:"categoryId" bson:"categoryId"`
-	Attributes      []Attribute          `json:"attributes" bson:"attributes"`
+	Attributes      []*Attribute         `json:"attributes" bson:"attributes"`
 	Slug            string               `json:"slug" bson:"slug"`
 	Dimensions      []Dimension          `json:"dimensions" bson:"dimensions"`
 	Variations      []Variation          `json:"variations,omitempty" bson:"variations,omitempty"`
@@ -41,8 +41,8 @@ type Products struct {
 }
 
 type ImagePro struct {
-	ID  primitive.ObjectID `json:"_id,omitempty" bson:"_id"`
-	Url string             `json:"url" bson:"url"`
+	ID  *primitive.ObjectID `json:"_id,omitempty" bson:"_id"`
+	Url string              `json:"url" bson:"url"`
 }
 type Attribute struct {
 	ID    primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`

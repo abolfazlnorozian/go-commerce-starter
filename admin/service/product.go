@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -501,7 +502,7 @@ func PostProductByAdmin(c *gin.Context) {
 		DiscountPercent: float64(getInt("discountPercent")),
 		Stock:           getInt("stock"),
 		CategoryID:      getString("categoryId"),
-		Attributes:      []entities.Attribute{}, // You should handle this similarly if needed
+		Attributes:      []*entities.Attribute{}, // You should handle this similarly if needed
 		Slug:            getString("slug"),
 		Dimensions:      getDimensions("dimensions"),
 		Variations:      getVariations("variations"),
@@ -522,7 +523,7 @@ func PostProductByAdmin(c *gin.Context) {
 				Key:   attrMap["key"].(string),
 				Value: attrMap["value"].(string),
 			}
-			product.Attributes = append(product.Attributes, attribute)
+			product.Attributes = append(product.Attributes, &attribute)
 		}
 	}
 
@@ -665,6 +666,49 @@ func DeleteProductByAdmin(c *gin.Context) {
 
 }
 
+func mergeAttributes(existing []entities.Attribute, updated interface{}) []entities.Attribute {
+	updatedAttributes := []entities.Attribute{}
+
+	// Convert the updated attributes interface to []entities.Attribute
+	if updatedAttrs, ok := updated.([]interface{}); ok {
+		for _, attr := range updatedAttrs {
+			if attrMap, ok := attr.(map[string]interface{}); ok {
+				var id primitive.ObjectID
+				if idStr, ok := attrMap["_id"].(string); ok {
+					parsedID, err := primitive.ObjectIDFromHex(idStr)
+					if err == nil {
+						id = parsedID
+					}
+				}
+
+				updatedAttributes = append(updatedAttributes, entities.Attribute{
+					ID:    id,
+					Key:   attrMap["key"].(string),
+					Value: attrMap["value"].(string),
+				})
+			}
+		}
+	}
+
+	// Merge existing and updated attributes
+	for _, attr := range existing {
+		// Check if the attribute with the same key exists in the updated attributes
+		exists := false
+		for _, updatedAttr := range updatedAttributes {
+			if attr.Key == updatedAttr.Key {
+				exists = true
+				break
+			}
+		}
+		// If the attribute doesn't exist in the updated attributes, retain it
+		if !exists {
+			updatedAttributes = append(updatedAttributes, attr)
+		}
+	}
+
+	return updatedAttributes
+}
+
 func UpdateProductByAdmin(c *gin.Context) {
 	id := c.Param("id")
 	if id == "" {
@@ -690,6 +734,9 @@ func UpdateProductByAdmin(c *gin.Context) {
 	// Remove _id from the updateFields if it exists
 	if _, exists := updateFields["_id"]; exists {
 		delete(updateFields, "_id")
+	}
+	if _, exists := updateFields["createdAt"]; exists {
+		delete(updateFields, "createdAt")
 	}
 
 	getBool := func(key string) bool {
@@ -752,6 +799,16 @@ func UpdateProductByAdmin(c *gin.Context) {
 			}
 		}
 		return []primitive.ObjectID{}
+	}
+
+	convertInterfaceArrayToIntArray := func(arr []interface{}) []int {
+		intArr := make([]int, len(arr))
+		for i, v := range arr {
+			if num, ok := v.(float64); ok {
+				intArr[i] = int(num)
+			}
+		}
+		return intArr
 	}
 
 	// Update fields processing
@@ -817,52 +874,104 @@ func UpdateProductByAdmin(c *gin.Context) {
 	if shortId := getString("shortId"); shortId != "" {
 		updateFields["shortId"] = generateShortID()
 	}
+	if images, ok := updateFields["images"].([]interface{}); ok {
+		imageArray := make([]entities.ImagePro, len(images))
+		for i, v := range images {
+			if imgMap, ok := v.(map[string]interface{}); ok {
+				idStr, _ := imgMap["_id"].(string)
+				var imgID *primitive.ObjectID
+				if idStr != "" {
+					objID, err := primitive.ObjectIDFromHex(idStr)
+					if err == nil {
+						imgID = &objID
+					}
+				}
+				imageArray[i] = entities.ImagePro{
+					ID:  imgID,
+					Url: imgMap["url"].(string),
+				}
+			}
+		}
+		updateFields["images"] = imageArray
+	}
 
 	// Set the updatedAt field to the current time
 	updateFields["updatedAt"] = time.Now()
 
 	// Handle dimensions
 	if dimensions, ok := updateFields["dimensions"].([]interface{}); ok {
-		// Assume Dimension is a struct with appropriate fields
 		dimensionsArray := make([]entities.Dimension, len(dimensions))
 		for i, v := range dimensions {
-			if _, ok := v.(map[string]interface{}); ok {
+			if dimMap, ok := v.(map[string]interface{}); ok {
+				// Ensure values is an array
+				values, valuesOk := dimMap["values"].([]interface{})
+				if !valuesOk {
+					values = []interface{}{}
+				}
+				// Populate dimension fields from dimMap
+				key, keyOk := dimMap["key"].(float64)
+				if !keyOk {
+					key = 0
+				}
 				dimensionsArray[i] = entities.Dimension{
-					// populate dimension fields from dimMap
+					ID:     primitive.NewObjectID(),
+					Key:    int(key),
+					Values: convertInterfaceArrayToIntArray(values),
 				}
 			}
 		}
 		updateFields["dimensions"] = dimensionsArray
 	}
 
-	// Handle variations
 	if variations, ok := updateFields["variations"].([]interface{}); ok {
-		// Assume Variation is a struct with appropriate fields
 		variationsArray := make([]entities.Variation, len(variations))
 		for i, v := range variations {
-			if _, ok := v.(map[string]interface{}); ok {
+			if varMap, ok := v.(map[string]interface{}); ok {
+				// Ensure keys is an array
+				keys, keysOk := varMap["keys"].([]interface{})
+				if !keysOk {
+					keys = []interface{}{}
+				}
 				variationsArray[i] = entities.Variation{
-					// populate variation fields from varMap
+					Id:              primitive.NewObjectID(),
+					Keys:            convertInterfaceArrayToIntArray(keys),
+					DiscountPercent: getInt(varMap["discountPercent"]),
+					Quantity:        getInt(varMap["quantity"]),
+					Price:           getInt(varMap["price"]),
 				}
 			}
 		}
 		updateFields["variations"] = variationsArray
 	}
 
-	// Handle attributes
-	if attributes, ok := updateFields["attributes"].([]interface{}); ok {
-		var attributesArray []entities.Attribute
-		for _, attr := range attributes {
-			attrMap := attr.(map[string]interface{})
-			attribute := entities.Attribute{
-				ID:    primitive.NewObjectID(),
-				Key:   attrMap["key"].(string),
-				Value: attrMap["value"].(string),
-			}
-			attributesArray = append(attributesArray, attribute)
-		}
-		updateFields["attributes"] = attributesArray
+	existingAttributes := []entities.Attribute{}
+	if err := proCollection.FindOne(c, filter).Decode(&existingAttributes); err == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error50": err.Error()})
+		return
 	}
+
+	// Merge existing attributes with updated attributes
+	updateAttributes := mergeAttributes(existingAttributes, updateFields["attributes"])
+
+	// Update the 'attributes' field with the merged attributes
+	updateFields["attributes"] = updateAttributes
+
+	// if attributes, ok := updateFields["attributes"].([]interface{}); ok {
+	// 	attributesArray := make([]entities.Attribute, len(attributes))
+	// 	for i, attr := range attributes {
+	// 		if attrMap, ok := attr.(map[string]interface{}); ok {
+	// 			attributesArray[i] = entities.Attribute{
+	// 				ID:    attrMap["_id"].(string),
+	// 				Key:   attrMap["key"].(string),
+	// 				Value: attrMap["value"].(string),
+	// 			}
+	// 		}
+	// 	}
+	// 	updateFields["attributes"] = attributesArray
+	// } else {
+	// 	// If attributes is not provided or empty, set it to an empty array
+	// 	updateFields["attributes"] = []entities.Attribute{}
+	// }
 
 	// Fetch category and its ancestors if categoryId is provided
 	if categoryId := getString("categoryId"); categoryId != "" {
@@ -1133,11 +1242,13 @@ func UpdateVariationByAdmin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'productId' parameter"})
 		return
 	}
+
 	variationID := c.Param("variationId")
 	if variationID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variationId' parameter"})
 		return
 	}
+
 	variationObjectID, err := primitive.ObjectIDFromHex(variationID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variationId' parameter"})
@@ -1152,29 +1263,82 @@ func UpdateVariationByAdmin(c *gin.Context) {
 		return
 	}
 
-	var updatedVariation struct {
-		Keys            []int  `json:"keys"`
-		DiscountPercent int    `json:"discountPercent"`
-		Quantity        string `json:"quantity"` // Initially bind as a string
-		Price           int    `json:"price"`
+	var updatedFields struct {
+		Keys            []int           `json:"keys"`
+		DiscountPercent json.RawMessage `json:"discountPercent"`
+		Quantity        json.RawMessage `json:"quantity"`
+		Price           json.RawMessage `json:"price"`
 	}
 
-	if err := c.ShouldBindJSON(&updatedVariation); err != nil {
+	if err := c.ShouldBindJSON(&updatedFields); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error2": err.Error()})
 		return
 	}
 
-	quantity, err := strconv.Atoi(updatedVariation.Quantity)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'quantity' value"})
-		return
+	var updatedVariation entities.Variation
+	var isUpdated bool
+
+	// Update discountPercent if provided
+	if len(updatedFields.DiscountPercent) > 0 {
+		var discountPercent int
+		if err := json.Unmarshal(updatedFields.DiscountPercent, &discountPercent); err != nil {
+			var discountPercentStr string
+			if err := json.Unmarshal(updatedFields.DiscountPercent, &discountPercentStr); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'discountPercent' value"})
+				return
+			}
+			discountPercent, err = strconv.Atoi(discountPercentStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'discountPercent' value"})
+				return
+			}
+		}
+		updatedVariation.DiscountPercent = discountPercent
+		isUpdated = true
 	}
 
-	convertedVariation := entities.Variation{
-		Keys:            updatedVariation.Keys,
-		DiscountPercent: updatedVariation.DiscountPercent,
-		Quantity:        quantity,
-		Price:           updatedVariation.Price,
+	// Update quantity if provided
+	if len(updatedFields.Quantity) > 0 {
+		var quantity int
+		if err := json.Unmarshal(updatedFields.Quantity, &quantity); err != nil {
+			var quantityStr string
+			if err := json.Unmarshal(updatedFields.Quantity, &quantityStr); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'quantity' value"})
+				return
+			}
+			quantity, err = strconv.Atoi(quantityStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'quantity' value"})
+				return
+			}
+		}
+		updatedVariation.Quantity = quantity
+		isUpdated = true
+	}
+
+	// Update price if provided
+	if len(updatedFields.Price) > 0 {
+		var price int
+		if err := json.Unmarshal(updatedFields.Price, &price); err != nil {
+			var priceStr string
+			if err := json.Unmarshal(updatedFields.Price, &priceStr); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'price' value"})
+				return
+			}
+			price, err = strconv.Atoi(priceStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'price' value"})
+				return
+			}
+		}
+		updatedVariation.Price = price
+		isUpdated = true
+	}
+
+	// Check if any field was updated
+	if !isUpdated {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No fields to update"})
+		return
 	}
 
 	// Find the variation to update
@@ -1182,10 +1346,15 @@ func UpdateVariationByAdmin(c *gin.Context) {
 	for i, variation := range product.Variations {
 		if variation.Id == variationObjectID {
 			// Update the fields of the variation
-			product.Variations[i].Keys = convertedVariation.Keys
-			product.Variations[i].DiscountPercent = convertedVariation.DiscountPercent
-			product.Variations[i].Quantity = convertedVariation.Quantity
-			product.Variations[i].Price = convertedVariation.Price
+			if len(updatedFields.DiscountPercent) > 0 {
+				product.Variations[i].DiscountPercent = updatedVariation.DiscountPercent
+			}
+			if len(updatedFields.Quantity) > 0 {
+				product.Variations[i].Quantity = updatedVariation.Quantity
+			}
+			if len(updatedFields.Price) > 0 {
+				product.Variations[i].Price = updatedVariation.Price
+			}
 			found = true
 			break
 		}
@@ -1212,6 +1381,104 @@ func UpdateVariationByAdmin(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "variations_edited", "body": gin.H{}})
 }
+
+// func UpdateVariationByAdmin(c *gin.Context) {
+// 	productId := c.Param("id")
+// 	if productId == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+// 		return
+// 	}
+
+// 	productObjectID, err := primitive.ObjectIDFromHex(productId)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'productId' parameter"})
+// 		return
+// 	}
+// 	variationID := c.Param("variationId")
+// 	if variationID == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+// 		return
+// 	}
+// 	variationObjectID, err := primitive.ObjectIDFromHex(variationID)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'variationId' parameter"})
+// 		return
+// 	}
+
+// 	filter := bson.M{"_id": productObjectID}
+// 	var product entities.Products
+// 	err = proCollection.FindOne(c, filter).Decode(&product)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error1": err.Error()})
+// 		return
+// 	}
+
+// 	var updatedVariation struct {
+// 		Keys            []int  `json:"keys"`
+// 		DiscountPercent int    `json:"discountPercent"`
+// 		Quantity        string `json:"quantity"` // Initially bind as a string
+// 		Price           int    `json:"price"`
+// 	}
+
+// 	if err := c.ShouldBindJSON(&updatedVariation); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error2": err.Error()})
+// 		return
+// 	}
+
+// 	quantity, err := strconv.Atoi(updatedVariation.Quantity)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'quantity' value"})
+// 		return
+// 	}
+
+// 	// price, err := strconv.Atoi(updatedVariation.Price)
+// 	// if err != nil {
+// 	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'price' value"})
+// 	// 	return
+// 	// }
+
+// 	convertedVariation := entities.Variation{
+// 		Keys:            updatedVariation.Keys,
+// 		DiscountPercent: updatedVariation.DiscountPercent,
+// 		Quantity:        quantity,
+// 		Price:           updatedVariation.Price,
+// 	}
+
+// 	// Find the variation to update
+// 	var found bool
+// 	for i, variation := range product.Variations {
+// 		if variation.Id == variationObjectID {
+// 			// Update the fields of the variation
+// 			product.Variations[i].Keys = convertedVariation.Keys
+// 			product.Variations[i].DiscountPercent = convertedVariation.DiscountPercent
+// 			product.Variations[i].Quantity = convertedVariation.Quantity
+// 			product.Variations[i].Price = convertedVariation.Price
+// 			found = true
+// 			break
+// 		}
+// 	}
+
+// 	if !found {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Variation not found"})
+// 		return
+// 	}
+
+// 	// Update the product with the modified variation
+// 	update := bson.M{
+// 		"$set": bson.M{
+// 			"variations": product.Variations,
+// 			"updatedAt":  time.Now(),
+// 		},
+// 	}
+
+// 	_, err = proCollection.UpdateOne(c, filter, update)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "variations_edited", "body": gin.H{}})
+// }
 
 type DimensionResponse struct {
 	Values []int               `json:"values"`

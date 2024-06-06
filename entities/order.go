@@ -30,7 +30,7 @@ type Order struct {
 	UpdatedAt         time.Time            `json:"updatedAt" bson:"updatedAt"`
 	V                 int                  `json:"__v" bson:"__v"`
 	PaymentId         string               `json:"paymentId" bson:"paymentId"`
-	PostalTrakingCode string               `json:"postalTrakingCode" bson:"postalTrakingCode"`
+	PostalTrakingCode string               `json:"postalTrackingCode" bson:"postalTrackingCode"`
 }
 type Product struct {
 	Quantity        int                `json:"quantity" bson:"quantity"`

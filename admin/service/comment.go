@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"math"
 	"net/http"
 	"shop/database"
@@ -152,86 +153,136 @@ func CommentGetProductByIDByAdmin(c *gin.Context) {
 	// If the product is found, return it as JSON response
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": product})
 }
-
 func UpdateCommentByAdmin(c *gin.Context) {
-
 	id := c.Param("id")
+	fmt.Printf("Request Path: %s\n", c.Request.URL.Path) // Logging the request path
+	fmt.Printf("Request Method: %s\n", c.Request.Method) // Logging the request method
+	fmt.Printf("Extracted ID: %s\n", id)                 // Logging the extracted ID
+
 	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
 		return
 	}
 
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error2": "Invalid 'id' parameter"})
-		return
-	}
+	objectID := primitive.ObjectID.Hex(primitive.ObjectID{})
+	// if err != nil {
+	// 	fmt.Printf("Error converting ID to ObjectID: %v\n", err) // Logging conversion error
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter"})
+	// 	return
+	// }
 
-	// Define a filter to find the product based on productId
+	// Define a filter to find the comment based on the comment ID
 	filter := bson.M{"_id": objectID}
-	updateFields := make(map[string]interface{})
 
-	// Extract fields to update from request JSON
-	if err := c.ShouldBindJSON(&updateFields); err != nil {
+	// Define a struct to parse the JSON payload
+	type UpdateIsActive struct {
+		IsActive bool `json:"isActive"`
+	}
+
+	var updateData UpdateIsActive
+	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Set the updatedAt field to the current time
-	updateFields["updatedAt"] = time.Now()
+	updateFields := bson.M{
+		"isActive":  updateData.IsActive,
+		"updatedAt": time.Now(),
+	}
 
 	// Construct the update query
 	updateQuery := bson.M{"$set": updateFields}
 
-	// page.CreatedAt = time.Now()
-	// page.UpdatedAt = time.Now()
-
-	// _, err = pagesCollection.UpdateOne(c, filter, bson.M{
-	// 	"$set": bson.M{
-	// 		"meta":      page.Meta,
-	// 		"mode":      page.Mode,
-	// 		"rows":      page.Rows,
-	// 		"url":       page.Url,
-	// 		"creayedAt": page.CreatedAt,
-	// 		"updatedAt": page.UpdatedAt,
-	// 		"__v":       page.V,
-	// 	},
-	// })
-	_, err = commentCollection.UpdateOne(c, filter, updateQuery)
-
+	// Perform the update operation
+	_, err := commentCollection.UpdateOne(c, filter, updateQuery)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// var comment entities.Comments
 
-	// comment.CreatedAt = time.Now()
-	// comment.UpdatedAt = time.Now()
-	// err = c.ShouldBindJSON(&comment)
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-
-	// _, err = commentCollection.UpdateOne(c, filter, bson.M{
-	// 	"$set": bson.M{
-	// 		// "_id":       comment.Id,
-	// 		"buyOffer":  comment.BuyOffer,
-	// 		"isActive":  comment.IsActive,
-	// 		"title":     comment.Title,
-	// 		"text":      comment.Text,
-	// 		"rate":      comment.Rate,
-	// 		"productId": comment.ProductId,
-	// 		"userId":    comment.UserId,
-	// 		"createdAt": comment.CreatedAt,
-	// 		"updatedAt": comment.UpdatedAt,
-	// 		"__v":       comment.V,
-	// 	},
-	// })
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error4": err.Error()})
-	// 	return
-	// }
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "comment_updated", "body": gin.H{}})
-
 }
+
+// func UpdateCommentByAdmin(c *gin.Context) {
+
+// 	id := c.Param("id")
+// 	if id == "" {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error1": "Invalid 'id' parameter"})
+// 		return
+// 	}
+
+// 	objectID, err := primitive.ObjectIDFromHex(id)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error2": "Invalid 'id' parameter"})
+// 		return
+// 	}
+
+// 	// Define a filter to find the product based on productId
+// 	filter := bson.M{"_id": objectID}
+// 	updateFields := make(map[string]interface{})
+
+// 	// Extract fields to update from request JSON
+// 	if err := c.ShouldBindJSON(&updateFields); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error3": err.Error()})
+// 		return
+// 	}
+
+// 	// Set the updatedAt field to the current time
+// 	updateFields["updatedAt"] = time.Now()
+
+// 	// Construct the update query
+// 	updateQuery := bson.M{"$set": updateFields}
+
+// 	// page.CreatedAt = time.Now()
+// 	// page.UpdatedAt = time.Now()
+
+// 	// _, err = pagesCollection.UpdateOne(c, filter, bson.M{
+// 	// 	"$set": bson.M{
+// 	// 		"meta":      page.Meta,
+// 	// 		"mode":      page.Mode,
+// 	// 		"rows":      page.Rows,
+// 	// 		"url":       page.Url,
+// 	// 		"creayedAt": page.CreatedAt,
+// 	// 		"updatedAt": page.UpdatedAt,
+// 	// 		"__v":       page.V,
+// 	// 	},
+// 	// })
+// 	_, err = commentCollection.UpdateOne(c, filter, updateQuery)
+
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error4": err.Error()})
+// 		return
+// 	}
+// 	// var comment entities.Comments
+
+// 	// comment.CreatedAt = time.Now()
+// 	// comment.UpdatedAt = time.Now()
+// 	// err = c.ShouldBindJSON(&comment)
+// 	// if err != nil {
+// 	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 	// 	return
+// 	// }
+
+// 	// _, err = commentCollection.UpdateOne(c, filter, bson.M{
+// 	// 	"$set": bson.M{
+// 	// 		// "_id":       comment.Id,
+// 	// 		"buyOffer":  comment.BuyOffer,
+// 	// 		"isActive":  comment.IsActive,
+// 	// 		"title":     comment.Title,
+// 	// 		"text":      comment.Text,
+// 	// 		"rate":      comment.Rate,
+// 	// 		"productId": comment.ProductId,
+// 	// 		"userId":    comment.UserId,
+// 	// 		"createdAt": comment.CreatedAt,
+// 	// 		"updatedAt": comment.UpdatedAt,
+// 	// 		"__v":       comment.V,
+// 	// 	},
+// 	// })
+// 	// if err != nil {
+// 	// 	c.JSON(http.StatusInternalServerError, gin.H{"error4": err.Error()})
+// 	// 	return
+// 	// }
+// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "comment_updated", "body": gin.H{}})
+
+// }

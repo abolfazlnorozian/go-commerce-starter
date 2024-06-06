@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"shop/database"
 	"shop/entities"
+	"shop/helpers"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -296,6 +297,8 @@ func GetInformationUserByAdmin(c *gin.Context) {
 }
 
 func UpdateSatusOrderByAdmin(c *gin.Context) {
+	var user entities.Users
+	var orderData entities.Order
 
 	id := c.Param("id")
 	if id == "" {
@@ -312,7 +315,7 @@ func UpdateSatusOrderByAdmin(c *gin.Context) {
 
 	var updateStatus struct {
 		Status            string `json:"status" binding:"required"`
-		PostalTrakingCode string `json:"postalTrakingCode" bson:"postalTrakingCode"`
+		PostalTrakingCode string `json:"postalTrackingCode" bson:"postalTrackingCode"`
 	}
 	err = c.ShouldBindJSON(&updateStatus)
 	if err != nil {
@@ -321,14 +324,47 @@ func UpdateSatusOrderByAdmin(c *gin.Context) {
 	}
 	update := bson.M{
 		"$set": bson.M{
-			"status":            updateStatus.Status,
-			"postalTrakingCode": updateStatus.PostalTrakingCode,
+			"status":             updateStatus.Status,
+			"postalTrackingCode": updateStatus.PostalTrakingCode,
 		},
 	}
 	_ = ordersCollection.FindOneAndUpdate(c, filter, update)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error3": err.Error()})
 		return
+	}
+	// orderIdStr := strconv.Itoa(int(orderData.Id.(int32)))
+	if updateStatus.Status == "pending" {
+		err := ordersCollection.FindOne(c, filter).Decode(&orderData)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error4": err.Error()})
+			return
+		}
+		err = userCollection.FindOne(c, bson.M{"_id": orderData.UserId}).Decode(&user)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error5": err.Error()})
+			return
+		}
+		rawPhoneNumber := user.PhoneNumber
+
+		phoneNumberWithZero := "0" + rawPhoneNumber
+		helpers.SendSmstoCustomerForReadyProduct(strconv.Itoa(objectID), phoneNumberWithZero)
+
+	} else if updateStatus.Status == "done" {
+		err := ordersCollection.FindOne(c, filter).Decode(&orderData)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error4": err.Error()})
+			return
+		}
+		err = userCollection.FindOne(c, bson.M{"_id": orderData.UserId}).Decode(&user)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error5": err.Error()})
+			return
+		}
+		rawPhoneNumber := user.PhoneNumber
+
+		phoneNumberWithZero := "0" + rawPhoneNumber
+		helpers.SendSmstoCustomerForSendProduct(strconv.Itoa(objectID), orderData.PostalTrakingCode, phoneNumberWithZero)
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "status_updated", "body": gin.H{}})
 
