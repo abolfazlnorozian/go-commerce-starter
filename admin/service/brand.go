@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"shop/database"
 	"shop/entities"
@@ -48,7 +47,7 @@ func GetBrandsByAdmin(c *gin.Context) {
 
 		// Create a map with the desired fields from the 'entities.Brands' struct
 		brandData := map[string]interface{}{
-			"id":      brand.Id,
+			"_id":     brand.Id,
 			"name":    brand.Name,
 			"details": brand.Details,
 			"image":   brand.Image,
@@ -139,96 +138,39 @@ func DeleteBrandsByAdmin(c *gin.Context) {
 
 }
 
-// func UpdateBrandByAdmin(c *gin.Context) {
-// 	// Extract the id from the URL parameter
-// 	id := c.Param("id")
-// 	fmt.Println("Extracted id from URL:", id)
-
-// 	// Convert the id to an integer
-// 	intID, err := strconv.Atoi(id)
-// 	if err != nil {
-// 		fmt.Println("Error converting id to integer:", err)
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid 'id' parameter, must be an integer"})
-// 		return
-// 	}
-// 	fmt.Println("Converted id to integer:", intID)
-
-// 	// Create a filter to match the integer _id
-// 	filter := bson.M{"_id": intID}
-
-// 	// Parse the incoming JSON payload into a struct
-// 	var updateBrand struct {
-// 		Name      string    `json:"name"`
-// 		Details   string    `json:"details"`
-// 		UpdatedAt time.Time `json:"updatedAt"`
-// 	}
-// 	if err := c.BindJSON(&updateBrand); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
-// 		return
-// 	}
-
-// 	// Set the updatedAt field to the current time
-// 	updateBrand.UpdatedAt = time.Now()
-
-// 	// Prepare the update query
-// 	updateQuery := bson.M{"$set": updateBrand}
-
-// 	// Execute the update operation
-// 	_, err = brandCollection.UpdateOne(c, filter, updateQuery)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	// Return a success response
-// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "brand_updated", "body": gin.H{}})
-// }
-
 func UpdateBrandByAdmin(c *gin.Context) {
-
-	// var brand entities.Brands
+	// Parse the input JSON into a map
 	updateFields := make(map[string]interface{})
 	err := c.ShouldBindJSON(&updateFields)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
 		return
 	}
-	barnId := c.Param("_id")
-	fmt.Println("a", barnId)
 
-	intID, err := strconv.Atoi(barnId)
+	// Get the brand ID from the URL parameter
+	brandId := c.Param("id")
+	intID, err := strconv.Atoi(brandId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error0": err.Error()})
 		return
 	}
-	fmt.Println("intId", intID)
+
+	// Ensure the _id field is not included in the updateFields map
+	delete(updateFields, "_id")
+
+	// Add the updatedAt field to the updateFields map
+	updateFields["updatedAt"] = time.Now()
+
 	// Create filter to match integer _id
 	filter := bson.M{"_id": intID}
-	updateFields["updatedAt"] = time.Now()
-	// brand.CreatedAt = time.Now()
-	// brand.UpdatedAt = time.Now()
 	updateQuery := bson.M{"$set": updateFields}
-	_, err = brandCollection.UpdateOne(c, filter, updateQuery)
 
+	// Perform the update operation
+	_, err = brandCollection.UpdateOne(c, filter, updateQuery)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
 		return
 	}
 
-	// _, err = brandCollection.UpdateOne(c, filter, bson.M{
-	// 	"$set": bson.M{
-	// 		// "_id":       brand.Id,
-	// 		"name":      brand.Name,
-	// 		"details":   brand.Details,
-	// 		"image":     brand.Image,
-	// 		"createdAt": brand.CreatedAt,
-	// 		"updatedAt": brand.UpdatedAt,
-	// 	},
-	// })
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
-	// 	return
-	// }
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "brand_updated", "body": gin.H{}})
-
 }

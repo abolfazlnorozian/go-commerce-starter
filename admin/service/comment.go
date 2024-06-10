@@ -74,7 +74,7 @@ func GetCommentByAdmin(c *gin.Context) {
 				return
 			}
 			customComment := gin.H{
-				"id":        co.Id,
+				"_id":       co.Id,
 				"buyOffer":  co.BuyOffer,
 				"isActive":  co.IsActive,
 				"title":     co.Title,

@@ -64,7 +64,7 @@ func GetUsersByAdmin(c *gin.Context) {
 				return
 			}
 			customUser := gin.H{
-				"id":                          us.Id,
+				"_id":                         us.Id,
 				"activeSession":               us.ActiveSession,
 				"fcmRegistrationToken":        us.FcmRegistratinToken,
 				"favoritesProducts":           us.Favorites,

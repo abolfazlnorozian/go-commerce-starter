@@ -61,7 +61,7 @@ func FindAllImagesByAdmin(c *gin.Context) {
 	var simplifiedimages []map[string]interface{}
 	for _, img := range images {
 		simplified := map[string]interface{}{
-			"id":  img.ID,
+			"_id": img.ID,
 			"url": img.Url,
 		}
 		simplifiedimages = append(simplifiedimages, simplified)
