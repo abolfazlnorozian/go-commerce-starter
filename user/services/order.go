@@ -1828,7 +1828,11 @@ func BackPayment(c *gin.Context) {
 		helpers.BackPaymentSendSms(orderIdStr, phoneNumberWithZero)
 		adminsPhones := os.Getenv("ADMINS_PHONES")
 		adminPhoneNumbers := strings.Split(adminsPhones, ",")
-		helpers.SendSmstoAdmin(buyPrice, adminPhoneNumbers)
+		err = helpers.SendSmstoAdmin(buyPrice, adminPhoneNumbers)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
 		c.HTML(http.StatusOK, "success_payment.html", nil)
 

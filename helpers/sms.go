@@ -275,7 +275,7 @@ func SendSmstoCustomerForSendProduct(verifyCode, postalTrackingCode, phoneNumber
 
 // }
 
-func SendSmstoAdmin(verifyCode string, phoneNumbers []string) {
+func SendSmstoAdmin(verifyCode string, phoneNumbers []string) error {
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
 
@@ -298,7 +298,7 @@ func SendSmstoAdmin(verifyCode string, phoneNumbers []string) {
 		req, err := http.NewRequest(method, url, payloadReader)
 		if err != nil {
 			fmt.Println(err)
-			return
+			return err
 		}
 		req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
 		req.Header.Add("Content-Type", "application/json")
@@ -306,15 +306,17 @@ func SendSmstoAdmin(verifyCode string, phoneNumbers []string) {
 		res, err := client.Do(req)
 		if err != nil {
 			fmt.Println(err)
-			return
+			return err
 		}
 		defer res.Body.Close()
 
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			fmt.Println(err)
-			return
+			return err
 		}
 		fmt.Println(string(body))
 	}
+	return nil
+
 }
