@@ -95,49 +95,6 @@ func BackPaymentSendSms(verifyCode, phoneNumber string) {
 
 }
 
-// func SendSmstoAdmin(verifyCode, phoneNumber string) {
-// 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
-// 	method := "POST"
-
-// 	payload := fmt.Sprintf(`
-//   {
-// 	"pattern_code": "cqxonayv27ogoth",
-// 	"originator": "+983000505",
-// 	"recipient": "%s",
-// 	"values": {
-// 	  "verification-code": "%s"
-// 	}
-//   }
-// `, phoneNumber, verifyCode)
-// 	// Convert payload to io.Reader
-// 	payloadReader := strings.NewReader(payload)
-
-// 	client := &http.Client{}
-// 	req, err := http.NewRequest(method, url, payloadReader)
-
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
-// 	req.Header.Add("Content-Type", "application/json")
-
-// 	res, err := client.Do(req)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	defer res.Body.Close()
-
-// 	body, err := ioutil.ReadAll(res.Body)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	fmt.Println(string(body))
-
-// }
-
 func SendSmstoCustomerForReadyProduct(verifyCode, phoneNumber string) {
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
@@ -232,49 +189,54 @@ func SendSmstoCustomerForSendProduct(verifyCode, postalTrackingCode, phoneNumber
 	fmt.Println("Response:", string(body))
 }
 
-// func SendSmstoCustomerForSendProduct(verifyCode, postalTrackingCode, phoneNumber string) {
+// func SendSmstoAdmin(verifyCode string, phoneNumbers []string) error {
 // 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 // 	method := "POST"
-
-// 	payload := fmt.Sprintf(`
-//   {
-// 	"pattern_code": "kwp8i54jjcdug03",
-// 	"originator": "+983000505",
-// 	"recipient": "%s",
-// 	"values": {
-// 	  "verification-code": "%s"
-// 	}
-//   }
-// `, phoneNumber, postalTrackingCode, verifyCode)
-// 	// Convert payload to io.Reader
-// 	payloadReader := strings.NewReader(payload)
-
 // 	client := &http.Client{}
-// 	req, err := http.NewRequest(method, url, payloadReader)
 
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
+// 	for _, phoneNumber := range phoneNumbers {
+// 		payload := map[string]interface{}{
+// 			"pattern_code": "cqxonayv27ogoth",
+// 			"originator":   "+983000505",
+// 			"recipient":    phoneNumber,
+// 			"values": map[string]string{
+// 				"verification-code": verifyCode,
+// 			},
+// 		}
+
+// 		jsonPayload, err := json.Marshal(payload)
+// 		if err != nil {
+// 			return fmt.Errorf("error encoding JSON: %w", err)
+// 		}
+
+// 		req, err := http.NewRequest(method, url, bytes.NewBuffer(jsonPayload))
+// 		if err != nil {
+// 			return fmt.Errorf("error creating request: %w", err)
+// 		}
+
+// 		req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
+// 		req.Header.Add("Content-Type", "application/json")
+
+// 		res, err := client.Do(req)
+// 		if err != nil {
+// 			return fmt.Errorf("error performing request: %w", err)
+// 		}
+// 		defer res.Body.Close()
+
+// 		body, err := ioutil.ReadAll(res.Body)
+// 		if err != nil {
+// 			return fmt.Errorf("error reading response body: %w", err)
+// 		}
+
+// 		if res.StatusCode != http.StatusOK {
+// 			return fmt.Errorf("request failed with status %d: %s", res.StatusCode, string(body))
+// 		}
+
+// 		fmt.Println("Response:", string(body))
 // 	}
-// 	req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
-// 	req.Header.Add("Content-Type", "application/json")
 
-// 	res, err := client.Do(req)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	defer res.Body.Close()
-
-// 	body, err := ioutil.ReadAll(res.Body)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return
-// 	}
-// 	fmt.Println(string(body))
-
+// 	return nil
 // }
-
 func SendSmstoAdmin(verifyCode string, phoneNumbers []string) error {
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"

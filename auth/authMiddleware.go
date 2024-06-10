@@ -60,13 +60,13 @@ func UserAuthenticate(c *gin.Context) {
 
 	clientToken := c.Request.Header.Get("authorization")
 	if clientToken == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("no Authorization header provided")})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": fmt.Sprintf("no Authorization header provided")})
 		c.Abort()
 		return
 	}
 	uclaims, err := ValidateUserToken(clientToken)
 	if err != "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err})
 		c.Abort()
 		return
 	}

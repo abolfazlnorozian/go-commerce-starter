@@ -991,13 +991,13 @@ func PostMixesProduct(c *gin.Context) {
 	tokenClaims, exists := c.Get("tokenClaims")
 
 	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token claims not found in context"})
 		return
 	}
 
 	claims, ok := tokenClaims.(*auth.SignedUserDetails)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims type"})
 		return
 	}
 
@@ -1077,13 +1077,13 @@ func DeleteMixofCart(c *gin.Context) {
 	// Get the token claims
 	tokenClaims, exists := c.Get("tokenClaims")
 	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Token claims not found in context"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token claims not found in context"})
 		return
 	}
 
 	claims, ok := tokenClaims.(*auth.SignedUserDetails)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid token claims type"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims type"})
 		return
 	}
 	username := claims.Username
