@@ -367,6 +367,17 @@ func generateShortID() string {
 	return string(b)
 }
 
+func generateNameFuzzy(name string) []string {
+	name = strings.ToLower(name)
+	var substrings []string
+	for i := 0; i < len(name); i++ {
+		for j := i + 1; j <= len(name); j++ {
+			substrings = append(substrings, name[i:j])
+		}
+	}
+	return substrings
+}
+
 func PostProductByAdmin(c *gin.Context) {
 	var input map[string]interface{}
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -482,6 +493,28 @@ func PostProductByAdmin(c *gin.Context) {
 		return []entities.Variation{}
 	}
 
+	imageData := input["images"].([]interface{})
+	// Create a slice to hold the ImagePro objects
+	var images []entities.ImagePro
+	// Iterate over the image data and create ImagePro objects
+	for _, img := range imageData {
+		imgMap := img.(map[string]interface{})
+		// Extract ID and URL from the map
+		id := imgMap["_id"].(string) // Assuming ID is stored as a string
+		url := imgMap["url"].(string)
+		// Convert ID to ObjectID
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			// Handle error
+		}
+		// Create ImagePro object
+		image := entities.ImagePro{
+			ID:  &objID,
+			Url: url,
+		}
+		images = append(images, image)
+	}
+
 	// Populate product fields
 	product := entities.Products{
 		ID:              primitive.NewObjectID(),
@@ -494,15 +527,15 @@ func PostProductByAdmin(c *gin.Context) {
 		Category:        getObjectIDArray("categories"),
 		Tags:            getStringArray("tags"),
 		SimilarProducts: getStringArray("similarProducts"),
-		NameFuzzy:       getStringArray("name_fuzzy"),
-		Images:          []entities.ImagePro{}, // You should handle this similarly if needed
+		NameFuzzy:       generateNameFuzzy(getString("name")),
+		Images:          images,
 		Name:            getString("name"),
 		Price:           getInt("price"),
 		Details:         getString("details"),
 		DiscountPercent: float64(getInt("discountPercent")),
 		Stock:           getInt("stock"),
 		CategoryID:      getString("categoryId"),
-		Attributes:      []*entities.Attribute{}, // You should handle this similarly if needed
+		Attributes:      []*entities.Attribute{},
 		Slug:            getString("slug"),
 		Dimensions:      getDimensions("dimensions"),
 		Variations:      getVariations("variations"),
@@ -525,6 +558,13 @@ func PostProductByAdmin(c *gin.Context) {
 			}
 			product.Attributes = append(product.Attributes, &attribute)
 		}
+	}
+	if len(product.Dimensions) > 0 || len(product.Variations) > 0 {
+		// Product has dimensions or variations
+		product.ProductType = "variations"
+	} else {
+		// Product does not have dimensions or variations
+		product.ProductType = "none"
 	}
 
 	if product.ShortID == "" {
@@ -1056,9 +1096,12 @@ func PostDimensionByAdmin(c *gin.Context) {
 			Values: []int{},
 		})
 	}
+
+	product.ProductType = "variations"
 	update := bson.M{
 		"$set": bson.M{
-			"dimensions": product.Dimensions,
+			"dimensions":  product.Dimensions,
+			"productType": product.ProductType,
 		},
 	}
 	// Update the product in the database

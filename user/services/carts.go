@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"shop/auth"
@@ -343,7 +344,7 @@ func GetCarts(c *gin.Context) {
 	var cartNotFound bool = true
 
 	for cur.Next(c) {
-		var cart entities.Catrs
+		var cart entities.Catrs2
 		if err := cur.Decode(&cart); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode cart", "details": err.Error()})
 			return
@@ -472,45 +473,54 @@ func GetCarts(c *gin.Context) {
 			}
 		} else if len(cart.Products) == 0 {
 			var mixes []entities.Mixes
-			// if cart.Mix != nil {
-			// 	// Check if cart.Mix is an array of ObjectIDs
-			// 	if mixIDs, ok := cart.Mix.([]primitive.ObjectID); ok {
-			// 		// cart.Mix is an array, fetch mix documents for each mix ID
-			// 		for _, mixID := range mixIDs {
-			// 			var mix entities.Mixes
-			// 			err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
-			// 			if err != nil {
-			// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
-			// 				return
-			// 			}
-			// 			mixes = append(mixes, mix)
-			// 		}
-			// 	} else if mixID, ok := cart.Mix.(primitive.ObjectID); ok {
-			// 		// cart.Mix is a single ObjectID, fetch the mix document
-			// 		var mix entities.Mixes
-			// 		err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
-			// 		if err != nil {
-			// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
-			// 			return
-			// 		}
-			// 		mixes = append(mixes, mix)
-			// 	} else {
-			// 		// cart.Mix has an invalid type
-			// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid mix field type"})
-			// 		return
-			// 	}
-			// }
-			for _, mixID := range cart.Mix {
-				var mix entities.Mixes
 
-				// Find the mix document by its ID
+			// Log the type and value of cart.Mix
+			fmt.Printf("Type of cart.Mix: %T, Value: %+v\n", cart.Mix, cart.Mix)
+
+			// Check if cart.Mix is of type primitive.A (alias for []interface{})
+			if mixIDs, ok := cart.Mix.(primitive.A); ok {
+				// cart.Mix is an array, fetch mix documents for each mix ID
+				for _, item := range mixIDs {
+					// Convert item to ObjectID
+					if mixID, ok := item.(primitive.ObjectID); ok {
+						var mix entities.Mixes
+						err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+						if err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+							return
+						}
+						mixes = append(mixes, mix)
+					} else {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid mix ObjectID format"})
+						return
+					}
+				}
+			} else if mixID, ok := cart.Mix.(primitive.ObjectID); ok {
+				// cart.Mix is a single ObjectID, fetch the mix document
+				var mix entities.Mixes
 				err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
 					return
 				}
 				mixes = append(mixes, mix)
+			} else {
+				// cart.Mix has an invalid type
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid mix field type", "details": err.Error()})
+				return
 			}
+			// for _, mixID := range cart.Mix {
+
+			// 	var mix entities.Mixes
+
+			// 	// Find the mix document by its ID
+			// 	err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+			// 	if err != nil {
+			// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+			// 		return
+			// 	}
+			// 	mixes = append(mixes, mix)
+			// }
 
 			// Define a slice to store mix products
 			var mixProducts []entities.MixProducts
@@ -694,45 +704,44 @@ func GetCarts(c *gin.Context) {
 				// }
 				//***************************************************************************************
 				var mixes []entities.Mixes
-				// if cart.Mix != nil {
-				// 	// Check if cart.Mix is an array of ObjectIDs
-				// 	if mixIDs, ok := cart.Mix.([]primitive.ObjectID); ok {
-				// 		// cart.Mix is an array, fetch mix documents for each mix ID
-				// 		for _, mixID := range mixIDs {
-				// 			var mix entities.Mixes
-				// 			err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
-				// 			if err != nil {
-				// 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
-				// 				return
-				// 			}
-				// 			mixes = append(mixes, mix)
-				// 		}
-				// 	} else if mixID, ok := cart.Mix.(primitive.ObjectID); ok {
-				// 		// cart.Mix is a single ObjectID, fetch the mix document
-				// 		var mix entities.Mixes
-				// 		err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
-				// 		if err != nil {
-				// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
-				// 			return
-				// 		}
-				// 		mixes = append(mixes, mix)
-				// 	} else {
-				// 		// cart.Mix has an invalid type
-				// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid mix field type"})
+
+				// Log the type and value of cart.Mix
+				fmt.Printf("Type of cart.Mix: %T, Value: %+v\n", cart.Mix, cart.Mix)
+
+				// Check if cart.Mix is of type primitive.A (alias for []interface{})
+				if mixIDs, ok := cart.Mix.(primitive.A); ok {
+					// cart.Mix is an array, fetch mix documents for each mix ID
+					for _, item := range mixIDs {
+						// Convert item to ObjectID
+						if mixID, ok := item.(primitive.ObjectID); ok {
+							var mix entities.Mixes
+							err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+							if err != nil {
+								c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
+								return
+							}
+							mixes = append(mixes, mix)
+						} else {
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid mix ObjectID format"})
+							return
+						}
+					}
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid mix field type"})
+					return
+				}
+
+				// for _, mixID := range cart.Mix {
+				// 	var mix entities.Mixes
+
+				// 	// Find the mix document by its ID
+				// 	err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
+				// 	if err != nil {
+				// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
 				// 		return
 				// 	}
+				// 	mixes = append(mixes, mix)
 				// }
-				for _, mixID := range cart.Mix {
-					var mix entities.Mixes
-
-					// Find the mix document by its ID
-					err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
-					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
-						return
-					}
-					mixes = append(mixes, mix)
-				}
 
 				// Define a slice to store mix products
 				var mixProducts []entities.MixProducts

@@ -27,6 +27,9 @@ type Catrs struct {
 // 	UpdatedAt time.Time          `json:"updatedAt" bson:"updatedAt"`
 // 	V         int                `json:"__v" bson:"__v"`
 // }
+type MixID struct {
+	Oid primitive.ObjectID `bson:"$oid"`
+}
 
 type Catrs2 struct {
 	Id        primitive.ObjectID `json:"_id" bson:"_id"`
