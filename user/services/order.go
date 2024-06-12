@@ -250,7 +250,7 @@ func AddOrder(c *gin.Context) {
 					Price:           selectedVariation.Price,
 					VariationKey:    selectedVariation.Keys,
 					ProductId:       product.ProductId,
-					DiscountPercent: float64(retrievedProduct.DiscountPercent),
+					DiscountPercent: float64(selectedVariation.DiscountPercent),
 				}
 
 				// Calculate discount and total price for the product with variations
@@ -403,7 +403,7 @@ func AddOrder(c *gin.Context) {
 					Price:           selectedVariation.Price,
 					VariationKey:    selectedVariation.Keys,
 					ProductId:       product.ProductId,
-					DiscountPercent: float64(retrievedProduct.DiscountPercent),
+					DiscountPercent: float64(selectedVariation.DiscountPercent),
 				}
 
 				// Calculate discount and total price for the product with variations

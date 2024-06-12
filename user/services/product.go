@@ -38,6 +38,16 @@ type DimensionResponse struct {
 	ID     primitive.ObjectID    `json:"_id,omitempty" bson:"_id,omitempty"`
 }
 
+// ProRouter provides ...
+// @Summary Get products by slug
+// @Description Get products by slug
+// @Tags products
+// @Accept json
+// @Produce json
+// @Param slug path string true "Product Slug"
+// @Success 200 {object} services.ProductWithCategories
+// @Router /api/products/{slug} [get]
+
 func GetProductBySlug(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -78,61 +88,17 @@ func GetProductBySlug(c *gin.Context) {
 	}
 
 	proWithCategories.Dimension = dimensions
+
 	// Sort variations by quantity (1 first, then 0)
 	sort.Slice(proWithCategories.Variations, func(i, j int) bool {
 		return proWithCategories.Variations[i].Quantity > proWithCategories.Variations[j].Quantity
 	})
+	sort.Slice(proWithCategories.Variations, func(i, j int) bool {
+		return proWithCategories.Variations[i].Price < proWithCategories.Variations[j].Price
+	})
 
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories})
 }
-
-// ProRouter provides ...
-// @Summary Get products by slug
-// @Description Get products by slug
-// @Tags products
-// @Accept json
-// @Produce json
-// @Param slug path string true "Product Slug"
-// @Success 200 {object} services.ProductWithCategories
-// @Router /api/products/{slug} [get]
-
-// func GetProductBySlug(c *gin.Context) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	slug := c.Param("slug")
-// 	var proWithCategories ProductWithCategories
-
-// 	err := proCollection.FindOne(ctx, bson.M{"slug": slug}).Decode(&proWithCategories.Products)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
-// 		return
-// 	}
-
-// 	// Fetch category details and store them in the Categories field
-// 	categories, err := fetchCategoryDetails(ctx, proWithCategories.Products.Category)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
-// 		return
-// 	}
-
-// 	// Assign the fetched categories to the Categories field
-// 	proWithCategories.Categories = categories
-
-// 	dimensions, err := fetchPropertyDetails(ctx, proWithCategories.Products.Dimensions)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error3": err.Error()})
-// 		return
-// 	}
-
-// 	proWithCategories.Dimension = dimensions
-// 	// Sort variations by quantity (1 first, then 0)
-// 	sort.Slice(proWithCategories.Products.Variations, func(i, j int) bool {
-// 		return proWithCategories.Products.Variations[i].Quantity > proWithCategories.Products.Variations[j].Quantity
-// 	})
-
-// 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories})
-// }
 
 func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension) ([]DimensionResponse, error) {
 	var dimensionResponses []DimensionResponse
@@ -480,6 +446,7 @@ func GetProductsByCategoryId(c *gin.Context) {
 	// Prepare the custom response with selected fields
 	var customProducts []gin.H
 	for _, product := range products {
+
 		customProduct := gin.H{
 			"_id":             product.ID,
 			"notExist":        product.NotExist,
@@ -674,7 +641,6 @@ func GetProductsByOnlyExists(c *gin.Context) {
 // @Success 200 {object} response.GetProductByOneField
 // @Router /api/products/ [get]
 func GetProductByCategory(c *gin.Context) {
-	//*********************
 	// Set a default filter to fetch all products
 	filter := bson.M{}
 
@@ -692,22 +658,18 @@ func GetProductByCategory(c *gin.Context) {
 		categoryIDs, err := searchChildrenIDs(*category.ID)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			return
 		}
 
-		// fmt.Println(categoryIDs)
 		if categoryIDs != nil {
 			var categoryID []string
 			for _, catID := range categoryIDs {
-
 				categoryID = append(categoryID, catID.ID.Hex())
 			}
-
 			filter["categoryId"] = bson.M{"$in": categoryID}
-
 		} else {
 			filter["categoryId"] = category.ID.Hex()
 		}
-
 	}
 
 	// Pagination parameters from the query
@@ -735,7 +697,6 @@ func GetProductByCategory(c *gin.Context) {
 	defer results.Close(ctx)
 
 	var products []entities.Products
-	var productsWithQuantity, productsWithoutQuantity []entities.Products
 
 	for results.Next(ctx) {
 		var pro entities.Products
@@ -745,22 +706,16 @@ func GetProductByCategory(c *gin.Context) {
 			return
 		}
 
-		hasQuantity := false
-		for _, p := range pro.Variations {
-			if p.Quantity != 0 && len(pro.Variations) != 0 {
-				hasQuantity = true
-				break
-			}
-		}
-
-		if hasQuantity {
-			productsWithQuantity = append(productsWithQuantity, pro)
-		} else {
-			productsWithoutQuantity = append(productsWithoutQuantity, pro)
-		}
+		products = append(products, pro)
 	}
-	products = append(products, productsWithQuantity...)
-	products = append(products, productsWithoutQuantity...)
+
+	// Sort all products by the minimum quantity of their variations if they have variations,
+	// or by their stock if they don't have variations
+	sort.Slice(products, func(i, j int) bool {
+		minQuantityI := getMinQuantity(products[i])
+		minQuantityJ := getMinQuantity(products[j])
+		return minQuantityI > minQuantityJ
+	})
 
 	// Calculate total number of pages based on the limit
 	totalPages := int(math.Ceil(float64(totalDocs) / float64(limit)))
@@ -817,6 +772,328 @@ func GetProductByCategory(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// Helper function to get the minimum quantity of variations or the stock if no variations
+func getMinQuantity(product entities.Products) int {
+	if len(product.Variations) > 0 {
+		minQuantity := product.Variations[0].Quantity
+		for _, v := range product.Variations {
+			if v.Quantity > minQuantity {
+				minQuantity = v.Quantity
+			}
+		}
+		return minQuantity
+	}
+	return product.Stock
+}
+
+// func GetProductByCategory(c *gin.Context) {
+// 	// Set a default filter to fetch all products
+// 	filter := bson.M{}
+
+// 	// If not all documents are requested, apply additional filter conditions
+// 	categoryName := c.DefaultQuery("category", "")
+// 	if categoryName != "" {
+// 		// Lookup the category by slug
+// 		var category entities.Category
+// 		err := categoryCollection.FindOne(context.Background(), bson.M{"slug": categoryName}).Decode(&category)
+// 		if err != nil {
+// 			c.JSON(http.StatusNotFound, gin.H{"message": "Category not found"})
+// 			return
+// 		}
+
+// 		categoryIDs, err := searchChildrenIDs(*category.ID)
+// 		if err != nil {
+// 			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+// 		}
+
+// 		if categoryIDs != nil {
+// 			var categoryID []string
+// 			for _, catID := range categoryIDs {
+// 				categoryID = append(categoryID, catID.ID.Hex())
+// 			}
+// 			filter["categoryId"] = bson.M{"$in": categoryID}
+// 		} else {
+// 			filter["categoryId"] = category.ID.Hex()
+// 		}
+// 	}
+
+// 	// Pagination parameters from the query
+// 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+// 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "40"))
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// 	defer cancel()
+
+// 	// Calculate skip value for pagination
+// 	skip := (page - 1) * limit
+
+// 	// Calculate total number of documents in the collection
+// 	totalDocs, err := proCollection.CountDocuments(ctx, filter)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to count products"})
+// 		return
+// 	}
+
+// 	results, err := proCollection.Find(ctx, filter, options.Find().SetSkip(int64(skip)).SetLimit(int64(limit)))
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding products"})
+// 		return
+// 	}
+// 	defer results.Close(ctx)
+
+// 	var products []entities.Products
+// 	var productsWithQuantity, productsWithoutQuantity []entities.Products
+
+// 	for results.Next(ctx) {
+// 		var pro entities.Products
+// 		err := results.Decode(&pro)
+// 		if err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+// 			return
+// 		}
+
+// 		hasQuantity := false
+// 		for _, p := range pro.Variations {
+// 			if p.Quantity != 0 && len(pro.Variations) != 0 {
+// 				hasQuantity = true
+// 				break
+// 			}
+// 		}
+
+// 		if hasQuantity {
+// 			productsWithQuantity = append(productsWithQuantity, pro)
+// 		} else {
+// 			productsWithoutQuantity = append(productsWithoutQuantity, pro)
+// 		}
+// 	}
+
+// 	// Sort products with variations by their variations' quantities
+// 	sort.Slice(productsWithQuantity, func(i, j int) bool {
+// 		minQuantityI := productsWithQuantity[i].Variations[0].Quantity
+// 		for _, v := range productsWithQuantity[i].Variations {
+// 			if v.Quantity < minQuantityI {
+// 				minQuantityI = v.Quantity
+// 			}
+// 		}
+// 		minQuantityJ := productsWithQuantity[j].Variations[0].Quantity
+// 		for _, v := range productsWithQuantity[j].Variations {
+// 			if v.Quantity < minQuantityJ {
+// 				minQuantityJ = v.Quantity
+// 			}
+// 		}
+// 		return minQuantityI < minQuantityJ
+// 	})
+
+// 	// Sort products without variations by their stock
+// 	sort.Slice(productsWithoutQuantity, func(i, j int) bool {
+// 		return productsWithoutQuantity[i].Stock > productsWithoutQuantity[j].Stock
+// 	})
+
+// 	// Merge the sorted products
+// 	products = append(products, productsWithQuantity...)
+// 	products = append(products, productsWithoutQuantity...)
+
+// 	// Calculate total number of pages based on the limit
+// 	totalPages := int(math.Ceil(float64(totalDocs) / float64(limit)))
+
+// 	// Determine if there are previous and next pages
+// 	hasPrevPage := page > 1
+// 	hasNextPage := page < totalPages
+
+// 	// Prepare the custom response with selected fields
+// 	var customProducts []gin.H
+// 	for _, product := range products {
+// 		customProduct := gin.H{
+// 			"_id":             product.ID,
+// 			"notExist":        product.NotExist,
+// 			"amazing":         product.Amazing,
+// 			"productType":     product.ProductType,
+// 			"images":          product.Images,
+// 			"name":            product.Name,
+// 			"price":           product.Price,
+// 			"discountPercent": product.DiscountPercent,
+// 			"stock":           product.Stock,
+// 			"slug":            product.Slug,
+// 			"variations":      product.Variations,
+// 			"salesNumber":     product.SalesNumber,
+// 			"bannerUrl":       product.BannerUrl,
+// 		}
+// 		customProducts = append(customProducts, customProduct)
+// 	}
+
+// 	// Prepare the response with custom products and pagination information
+// 	response := gin.H{
+// 		"docs":          customProducts,
+// 		"totalDocs":     totalDocs,
+// 		"limit":         limit,
+// 		"totalPages":    totalPages,
+// 		"page":          page,
+// 		"pagingCounter": skip + 1,
+// 		"hasPrevPage":   hasPrevPage,
+// 		"hasNextPage":   hasNextPage,
+// 	}
+
+// 	// Set prevPage and nextPage values based on the current page
+// 	if hasPrevPage {
+// 		response["prevPage"] = page - 1
+// 	} else {
+// 		response["prevPage"] = nil
+// 	}
+
+// 	if hasNextPage {
+// 		response["nextPage"] = page + 1
+// 	} else {
+// 		response["nextPage"] = nil
+// 	}
+
+// 	c.JSON(http.StatusOK, response)
+// }
+
+// func GetProductByCategory(c *gin.Context) {
+// 	//*********************
+// 	// Set a default filter to fetch all products
+// 	filter := bson.M{}
+
+// 	// If not all documents are requested, apply additional filter conditions
+// 	categoryName := c.DefaultQuery("category", "")
+// 	if categoryName != "" {
+// 		// Lookup the category by slug
+// 		var category entities.Category
+// 		err := categoryCollection.FindOne(context.Background(), bson.M{"slug": categoryName}).Decode(&category)
+// 		if err != nil {
+// 			c.JSON(http.StatusNotFound, gin.H{"message": "Category not found"})
+// 			return
+// 		}
+
+// 		categoryIDs, err := searchChildrenIDs(*category.ID)
+// 		if err != nil {
+// 			c.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+// 		}
+
+// 		// fmt.Println(categoryIDs)
+// 		if categoryIDs != nil {
+// 			var categoryID []string
+// 			for _, catID := range categoryIDs {
+
+// 				categoryID = append(categoryID, catID.ID.Hex())
+// 			}
+
+// 			filter["categoryId"] = bson.M{"$in": categoryID}
+
+// 		} else {
+// 			filter["categoryId"] = category.ID.Hex()
+// 		}
+
+// 	}
+
+// 	// Pagination parameters from the query
+// 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+// 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "40"))
+
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// 	defer cancel()
+
+// 	// Calculate skip value for pagination
+// 	skip := (page - 1) * limit
+
+// 	// Calculate total number of documents in the collection
+// 	totalDocs, err := proCollection.CountDocuments(ctx, filter)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to count products"})
+// 		return
+// 	}
+
+// 	results, err := proCollection.Find(ctx, filter, options.Find().SetSkip(int64(skip)).SetLimit(int64(limit)))
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error finding products"})
+// 		return
+// 	}
+// 	defer results.Close(ctx)
+
+// 	var products []entities.Products
+// 	var productsWithQuantity, productsWithoutQuantity []entities.Products
+
+// 	for results.Next(ctx) {
+// 		var pro entities.Products
+// 		err := results.Decode(&pro)
+// 		if err != nil {
+// 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+// 			return
+// 		}
+
+// 		hasQuantity := false
+// 		for _, p := range pro.Variations {
+// 			if p.Quantity != 0 && len(pro.Variations) != 0 {
+// 				hasQuantity = true
+// 				break
+// 			}
+// 		}
+
+// 		if hasQuantity {
+// 			productsWithQuantity = append(productsWithQuantity, pro)
+// 		} else {
+// 			productsWithoutQuantity = append(productsWithoutQuantity, pro)
+// 		}
+// 	}
+// 	products = append(products, productsWithQuantity...)
+// 	products = append(products, productsWithoutQuantity...)
+
+// 	// Calculate total number of pages based on the limit
+// 	totalPages := int(math.Ceil(float64(totalDocs) / float64(limit)))
+
+// 	// Determine if there are previous and next pages
+// 	hasPrevPage := page > 1
+// 	hasNextPage := page < totalPages
+
+// 	// Prepare the custom response with selected fields
+// 	var customProducts []gin.H
+// 	for _, product := range products {
+// 		customProduct := gin.H{
+// 			"_id":             product.ID,
+// 			"notExist":        product.NotExist,
+// 			"amazing":         product.Amazing,
+// 			"productType":     product.ProductType,
+// 			"images":          product.Images,
+// 			"name":            product.Name,
+// 			"price":           product.Price,
+// 			"discountPercent": product.DiscountPercent,
+// 			"stock":           product.Stock,
+// 			"slug":            product.Slug,
+// 			"variations":      product.Variations,
+// 			"salesNumber":     product.SalesNumber,
+// 			"bannerUrl":       product.BannerUrl,
+// 		}
+// 		customProducts = append(customProducts, customProduct)
+// 	}
+
+// 	// Prepare the response with custom products and pagination information
+// 	response := gin.H{
+// 		"docs":          customProducts,
+// 		"totalDocs":     totalDocs,
+// 		"limit":         limit,
+// 		"totalPages":    totalPages,
+// 		"page":          page,
+// 		"pagingCounter": skip + 1,
+// 		"hasPrevPage":   hasPrevPage,
+// 		"hasNextPage":   hasNextPage,
+// 	}
+
+// 	// Set prevPage and nextPage values based on the current page
+// 	if hasPrevPage {
+// 		response["prevPage"] = page - 1
+// 	} else {
+// 		response["prevPage"] = nil
+// 	}
+
+// 	if hasNextPage {
+// 		response["nextPage"] = page + 1
+// 	} else {
+// 		response["nextPage"] = nil
+// 	}
+
+// 	c.JSON(http.StatusOK, response)
+// }
 
 // ********************************************************************************
 func searchChildrenIDs(categoryID primitive.ObjectID) ([]entities.Category, error) {

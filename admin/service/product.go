@@ -514,6 +514,9 @@ func PostProductByAdmin(c *gin.Context) {
 		}
 		images = append(images, image)
 	}
+	if len(images) == 0 {
+		images = []entities.ImagePro{}
+	}
 
 	// Populate product fields
 	product := entities.Products{
