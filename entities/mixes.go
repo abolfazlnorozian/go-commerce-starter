@@ -9,7 +9,7 @@ import (
 type Mixes struct {
 	ID        primitive.ObjectID   `json:"_id" bson:"_id"`
 	Products  []primitive.ObjectID `json:"products" bson:"products"`
-	Balance   []int                `json:"balance" bson:"balance"`
+	Balances  []int                `json:"balance" bson:"balance"`
 	Name      string               `json:"name" bson:"name"`
 	Weight    int                  `json:"weight" bson:"weight"`
 	Pattern   int                  `json:"pattern" bson:"pattern"`
@@ -18,3 +18,8 @@ type Mixes struct {
 	UpdatedAt time.Time            `json:"updatedAt" bson:"updatedAt"`
 	V         int                  `json:"__v" bson:"__v"`
 }
+
+// type Balance struct {
+// 	Value       int    `json:"value" bson:"value"`
+// 	NameProduct string `json:"nameproduct" bson:"nameproduct"`
+// }

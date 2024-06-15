@@ -265,8 +265,8 @@ func AddOrder(c *gin.Context) {
 			}
 		}
 
-		// Add postal cost once
-		totalPrice += order.PostalCost
+		// // Add postal cost once
+		// totalPrice += order.PostalCost
 
 		// Update order details with total price and total discount
 		order.TotalPrice = totalPrice
@@ -306,13 +306,13 @@ func AddOrder(c *gin.Context) {
 				}
 
 				// Ensure that the index does not exceed the length of the balance array
-				if index >= len(mix.Balance) {
+				if index >= len(mix.Balances) {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "index out of range"})
 					return
 				}
 				subtotal := 0
-				mixBalance := mix.Balance[index] * mix.Weight
-				mixDevide := float64(mixBalance) / 10000
+				mixBalance := mix.Balances[index] * mix.Weight
+				mixDevide := float64(mixBalance) / 100000
 				money := mixDevide * float64(mixProduct.Price)
 				subtotal += int(money)
 				// Calculate subtotal for the mix product using the correct index
@@ -334,7 +334,9 @@ func AddOrder(c *gin.Context) {
 		}
 
 		// Assign total price to order
-		order.TotalPrice = totalPrice + order.PostalCost
+		// order.TotalPrice = totalPrice + order.PostalCost
+
+		order.TotalPrice = totalPrice
 	} else if len(cart.Products) > 0 && len(cart.Mix) > 0 {
 
 		var tm int
@@ -458,13 +460,13 @@ func AddOrder(c *gin.Context) {
 				}
 
 				// Ensure that the index does not exceed the length of the balance array
-				if index >= len(mix.Balance) {
+				if index >= len(mix.Balances) {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "index out of range"})
 					return
 				}
 				subtotal := 0
-				mixBalance := mix.Balance[index] * mix.Weight
-				mixDevide := float64(mixBalance) / 10000
+				mixBalance := mix.Balances[index] * mix.Weight
+				mixDevide := float64(mixBalance) / 100000
 				money := mixDevide * float64(mixProduct.Price)
 				subtotal += int(money)
 				// Calculate subtotal for the mix product using the correct index
@@ -486,11 +488,12 @@ func AddOrder(c *gin.Context) {
 		}
 		tm = totalPrice2
 		// Assign total price to order
-		order.TotalPrice = tm + totalPrice1 + order.PostalCost
+		// order.TotalPrice = tm + totalPrice1 + order.PostalCost
+		order.TotalPrice = tm + totalPrice1
 
 	}
 
-	// order.TotalPrice = totalPrice
+	// order.TotalPrice += order.PostalCost
 	// Initialize Products field if nil
 
 	// Delete cart after order creation
@@ -1191,7 +1194,7 @@ func GetOrderByID(c *gin.Context) {
 				"createdAt": mix.CreatedAt,
 				"updatedAt": mix.UpdatedAt,
 				"__v":       mix.V,
-				"balance":   mix.Balance,
+				"balance":   mix.Balances,
 				"products":  mixProductArray,
 			}
 			mixArray = append(mixArray, mixDetails)
@@ -1482,7 +1485,7 @@ func GetOrderByID(c *gin.Context) {
 				"createdAt": mix.CreatedAt,
 				"updatedAt": mix.UpdatedAt,
 				"__v":       mix.V,
-				"balance":   mix.Balance,
+				"balance":   mix.Balances,
 				"products":  mixProductArray,
 			}
 			mixArray = append(mixArray, mixDetails)
@@ -1739,7 +1742,7 @@ func SendToZarinpal(c *gin.Context) {
 	baseURL := os.Getenv("BASE_URL")
 	callbackPath := "/api/users/orders/checkout/verify"
 	callbackURL := baseURL + callbackPath
-	amount := totalPrice
+	amount := totalPrice + 40000
 	description := "Payment for order ID"
 
 	request := zarinpal.NewRequest(merchantID, callbackURL, uint(amount), description)

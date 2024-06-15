@@ -83,6 +83,7 @@ func main() {
 	router.CommentRoute(v1)
 	router.FavoriteRoute(v1)
 	router.AssetsRoute(v2)
+	router.CouponRoute(v1)
 	router.State(v2)
 
 	//**********************

@@ -500,11 +500,19 @@ func GetCarts(c *gin.Context) {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "cursor error", "details": err.Error()})
 					return
 				}
+				var balanceDetails []map[string]interface{}
+				for i, balance := range mix.Balances {
+					balanceDetail := map[string]interface{}{
+						"balance":     balance,
+						"nameproduct": productDetails[i].Name,
+					}
+					balanceDetails = append(balanceDetails, balanceDetail)
+				}
 
 				responseMix := map[string]interface{}{
 					"_id":       mix.ID,
 					"products":  productDetails,
-					"balance":   mix.Balance,
+					"balance":   balanceDetails,
 					"name":      mix.Name,
 					"weight":    mix.Weight,
 					"pattern":   mix.Pattern,
@@ -811,12 +819,20 @@ func GetCarts(c *gin.Context) {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "cursor error", "details": err.Error()})
 						return
 					}
+					var balanceDetails []map[string]interface{}
+					for i, balance := range mix.Balances {
+						balanceDetail := map[string]interface{}{
+							"balance":     balance,
+							"nameproduct": productDetails[i].Name,
+						}
+						balanceDetails = append(balanceDetails, balanceDetail)
+					}
 
 					// Construct the mix object with full product details
 					responseMix := map[string]interface{}{
 						"_id":       mix.ID,
 						"products":  productDetails,
-						"balance":   mix.Balance,
+						"balance":   balanceDetails,
 						"name":      mix.Name,
 						"weight":    mix.Weight,
 						"pattern":   mix.Pattern,
