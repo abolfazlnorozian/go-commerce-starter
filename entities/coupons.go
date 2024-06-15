@@ -21,3 +21,19 @@ type Coupons struct {
 	UpdatedAt       time.Time          `json:"updatedAt" bson:"updatedAt"`
 	V               int                `json:"__v" bson:"__v"`
 }
+
+type CouponResponse struct {
+	ID              string    `json:"_id"`
+	IsExpired       bool      `json:"isExpired"`
+	WithoutDiscount bool      `json:"withoutDiscount"`
+	CouponCode      string    `json:"couponCode"`
+	Amount          int       `json:"amount"`
+	MinimumPurchase int       `json:"minimumPurchase"`
+	DateExpired     time.Time `json:"dateExpired"`
+	To              string    `json:"to"`
+	User            *string   `json:"user"`
+	Category        *string   `json:"category"` // Changed to string
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	V               int       `json:"__v"`
+}

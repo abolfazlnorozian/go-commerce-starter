@@ -270,6 +270,7 @@ func AddOrder(c *gin.Context) {
 
 		// Update order details with total price and total discount
 		order.TotalPrice = totalPrice
+
 		order.TotalDiscount = totalDiscount
 	} else if len(cart.Products) == 0 {
 		// If cart has mix but no individual products, calculate total price from mix products
@@ -492,8 +493,20 @@ func AddOrder(c *gin.Context) {
 		order.TotalPrice = tm + totalPrice1
 
 	}
+	if cart.CopounCode != "" {
+		var coupon entities.Coupons
+		err := coupontCollection.FindOne(c, bson.M{"couponCode": cart.CopounCode}).Decode(&coupon)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"errorCoupon": err.Error()})
+			return
+		}
+		order.IsCoupon = true
+		order.CouponCode = coupon.CouponCode
+		order.AmountCoupon = coupon.Amount
 
-	// order.TotalPrice += order.PostalCost
+	}
+
+	order.TotalPrice -= order.AmountCoupon
 	// Initialize Products field if nil
 
 	// Delete cart after order creation
@@ -1207,6 +1220,8 @@ func GetOrderByID(c *gin.Context) {
 			"status":        orders.Status,
 			"paymentStatus": orders.PaymentStatus,
 			"message":       orders.Message,
+			"couponCode":    orders.CouponCode,
+			"amountCoupon":  orders.AmountCoupon,
 			"_id":           orders.Id,
 			"totalPrice":    orders.TotalPrice,
 			"totalDiscount": orders.TotalDiscount,
@@ -1234,6 +1249,8 @@ func GetOrderByID(c *gin.Context) {
 			"status":        orders.Status,
 			"paymentStatus": orders.PaymentStatus,
 			"message":       orders.Message,
+			"couponCode":    orders.CouponCode,
+			"amountCoupon":  orders.AmountCoupon,
 			"_id":           orders.Id,
 			"totalPrice":    orders.TotalPrice,
 			"totalDiscount": orders.TotalDiscount,
@@ -1497,6 +1514,8 @@ func GetOrderByID(c *gin.Context) {
 			"status":        orders.Status,
 			"paymentStatus": orders.PaymentStatus,
 			"message":       orders.Message,
+			"couponCode":    orders.CouponCode,
+			"amountCoupon":  orders.AmountCoupon,
 			"_id":           orders.Id,
 			"totalPrice":    orders.TotalPrice,
 			"totalDiscount": orders.TotalDiscount,
