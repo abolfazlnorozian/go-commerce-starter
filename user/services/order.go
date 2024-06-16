@@ -1198,6 +1198,15 @@ func GetOrderByID(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "mix products not found for mix ID: " + mix.ID.Hex()})
 				return
 			}
+			var balanceDetails []gin.H
+			for i, balance := range mix.Balances {
+				if i < len(mixProductArray) {
+					balanceDetails = append(balanceDetails, gin.H{
+						"balance":     balance,
+						"nameproduct": mixProductArray[i].Name,
+					})
+				}
+			}
 			mixDetails := gin.H{
 				"_id":       mix.ID,
 				"name":      mix.Name,
@@ -1207,7 +1216,7 @@ func GetOrderByID(c *gin.Context) {
 				"createdAt": mix.CreatedAt,
 				"updatedAt": mix.UpdatedAt,
 				"__v":       mix.V,
-				"balance":   mix.Balances,
+				"balance":   balanceDetails,
 				"products":  mixProductArray,
 			}
 			mixArray = append(mixArray, mixDetails)
@@ -1493,6 +1502,15 @@ func GetOrderByID(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "mix products not found for mix ID: " + mix.ID.Hex()})
 				return
 			}
+			var balanceDetails []gin.H
+			for i, balance := range mix.Balances {
+				if i < len(mixProductArray) {
+					balanceDetails = append(balanceDetails, gin.H{
+						"balance":     balance,
+						"nameproduct": mixProductArray[i].Name,
+					})
+				}
+			}
 			mixDetails := gin.H{
 				"_id":       mix.ID,
 				"name":      mix.Name,
@@ -1502,7 +1520,7 @@ func GetOrderByID(c *gin.Context) {
 				"createdAt": mix.CreatedAt,
 				"updatedAt": mix.UpdatedAt,
 				"__v":       mix.V,
-				"balance":   mix.Balances,
+				"balance":   balanceDetails,
 				"products":  mixProductArray,
 			}
 			mixArray = append(mixArray, mixDetails)

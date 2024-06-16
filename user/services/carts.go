@@ -471,6 +471,7 @@ func GetCarts(c *gin.Context) {
 
 			}
 		} else if len(cart.Products) == 0 {
+			var mixes []map[string]interface{}
 			for _, mixID := range cart.Mix {
 				var mix entities.Mixes
 
@@ -521,13 +522,13 @@ func GetCarts(c *gin.Context) {
 					"updatedAt": mix.UpdatedAt,
 					"__v":       mix.V,
 				}
+				mixes = append(mixes, responseMix)
 
-				// Append the mix data along with its products to the products slice
-				products = append(products, map[string]interface{}{
-					"variations": []interface{}{}, // Initialize variations as an empty array
-					"mix":        responseMix,     // Include mix data for mix entries
-				})
 			}
+			products = append(products, map[string]interface{}{
+				"variations": []interface{}{}, // Initialize variations as an empty array
+				"mix":        mixes,           // Include mix data for mix entries
+			})
 			// var mixes []entities.Mixes
 
 			// // // Check if cart.Mix is of type primitive.A (alias for []interface{})
