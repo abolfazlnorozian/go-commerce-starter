@@ -10,7 +10,7 @@ type Coupons struct {
 	ID              primitive.ObjectID `json:"_id" bson:"_id"`
 	IsExpired       bool               `json:"isExpired" bson:"isExpired"`
 	WithoutDiscount bool               `json:"withoutDiscount" bson:"withoutDiscount"`
-	CouponCode      string             `json:"couponCode" bson:"couponCode"`
+	CouponCode      string             `json:"couponCode,omitempty" bson:"couponCode,omitempty"`
 	Amount          int                `json:"amount" bson:"amount"`
 	MinimumPurchase int                `json:"minimumPurchase" bson:"minimumPurchase"`
 	DateExpired     time.Time          `json:"dateExpired" bson:"dateExpired"`

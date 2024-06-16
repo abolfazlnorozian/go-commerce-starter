@@ -184,7 +184,7 @@ func ApiGh(r *gin.RouterGroup) {
 func CouponRoute(r *gin.RouterGroup) {
 	b := r.Group("/")
 	b.Use(auth.UserAuthenticate)
-	b.GET("/coupons/:id", services.GetCouponeByCouponCod)
+	b.GET("/coupons/:id", services.GetCouponByCouponCode)
 }
 
 //****************************************************************************************************
