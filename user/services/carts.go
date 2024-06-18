@@ -386,18 +386,18 @@ func GetCarts(c *gin.Context) {
 			})
 			return
 		}
-		if len(cart.Products) > 0 && cart.Mix != nil {
-			_, err := cartCollection.UpdateOne(
-				c,
-				bson.M{"_id": cart.Id},
-				bson.M{"$unset": bson.M{"mix": ""}},
-			)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update cart", "details": err.Error()})
-				return
-			}
-			cart.Mix = nil // Update the in-memory representation as well
-		}
+		// if len(cart.Products) > 0 && cart.Mix != nil {
+		// 	_, err := cartCollection.UpdateOne(
+		// 		c,
+		// 		bson.M{"_id": cart.Id},
+		// 		bson.M{"$unset": bson.M{"mix": ""}},
+		// 	)
+		// 	if err != nil {
+		// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update cart", "details": err.Error()})
+		// 		return
+		// 	}
+		// 	cart.Mix = nil // Update the in-memory representation as well
+		// }
 
 		cartNotFound = false
 		if cart.Mix == nil {
