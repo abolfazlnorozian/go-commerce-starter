@@ -1780,6 +1780,7 @@ func SendToZarinpal(c *gin.Context) {
 	callbackPath := "/api/users/orders/checkout/verify"
 	callbackURL := baseURL + callbackPath
 	amount := totalPrice + 40000
+	log.Println(amount)
 	// amount := totalPrice
 	description := "Payment for order ID"
 
@@ -1833,7 +1834,7 @@ func BackPayment(c *gin.Context) {
 
 	merchantID := merchantid
 
-	amount := orderData.TotalPrice
+	amount := orderData.TotalPrice + 40000
 
 	verify := zarinpal.NewVerify(merchantID, authority, uint(amount))
 	log.Println("verify:", verify)
