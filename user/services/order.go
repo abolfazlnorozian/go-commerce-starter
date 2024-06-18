@@ -1779,8 +1779,8 @@ func SendToZarinpal(c *gin.Context) {
 	baseURL := os.Getenv("BASE_URL")
 	callbackPath := "/api/users/orders/checkout/verify"
 	callbackURL := baseURL + callbackPath
-	// amount := totalPrice + 40000
-	amount := totalPrice
+	amount := totalPrice + 40000
+	// amount := totalPrice
 	description := "Payment for order ID"
 
 	request := zarinpal.NewRequest(merchantID, callbackURL, uint(amount), description)
