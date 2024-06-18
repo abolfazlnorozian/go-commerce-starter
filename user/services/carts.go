@@ -344,32 +344,32 @@ func GetCarts(c *gin.Context) {
 
 	for cur.Next(c) {
 		var cart entities.Catrs
-		var rawCart bson.Raw
-		if err := cur.Decode(&rawCart); err != nil {
+		// var rawCart bson.Raw
+		if err := cur.Decode(&cart); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode cart", "details": err.Error()})
 			return
 		}
-		if err := cur.Decode(&rawCart); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode cart", "details": err.Error()})
-			return
-		}
+		// if err := cur.Decode(&rawCart); err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode cart", "details": err.Error()})
+		// 	return
+		// }
 
-		mixVal := rawCart.Lookup("mix")
-		if mixVal.Type == bson.TypeObjectID {
-			// Remove this document from the cart as it contains mix as an ObjectID
-			_, err := cartCollection.DeleteOne(c, bson.M{"_id": rawCart.Lookup("_id").ObjectID()})
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete invalid cart document", "details": err.Error()})
-				return
-			}
-			// Skip processing this document
-			continue
-		}
+		// mixVal := rawCart.Lookup("mix")
+		// if mixVal.Type == bson.TypeObjectID {
+		// 	// Remove this document from the cart as it contains mix as an ObjectID
+		// 	_, err := cartCollection.DeleteOne(c, bson.M{"_id": rawCart.Lookup("_id").ObjectID()})
+		// 	if err != nil {
+		// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete invalid cart document", "details": err.Error()})
+		// 		return
+		// 	}
+		// 	// Skip processing this document
+		// 	continue
+		// }
 
-		if err := bson.Unmarshal(rawCart, &cart); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal cart", "details": err.Error()})
-			return
-		}
+		// if err := bson.Unmarshal(rawCart, &cart); err != nil {
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unmarshal cart", "details": err.Error()})
+		// 	return
+		// }
 
 		if len(cart.Products) == 0 && cart.Mix == nil {
 			// Cart is empty, return empty cart response
@@ -386,18 +386,6 @@ func GetCarts(c *gin.Context) {
 			})
 			return
 		}
-		// if len(cart.Products) > 0 && cart.Mix != nil {
-		// 	_, err := cartCollection.UpdateOne(
-		// 		c,
-		// 		bson.M{"_id": cart.Id},
-		// 		bson.M{"$unset": bson.M{"mix": ""}},
-		// 	)
-		// 	if err != nil {
-		// 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update cart", "details": err.Error()})
-		// 		return
-		// 	}
-		// 	cart.Mix = nil // Update the in-memory representation as well
-		// }
 
 		cartNotFound = false
 		if cart.Mix == nil {

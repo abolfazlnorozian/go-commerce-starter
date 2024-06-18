@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +14,8 @@ import (
 
 	"github.com/joho/godotenv"
 	swaggerFiles "github.com/swaggo/files"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -39,6 +43,9 @@ func main() {
 	v4 := r.Group("/admin")
 
 	v2.Use(removeDoubleSlashesMiddleware)
+	if err := deleteAllDocumentsInCartCollection(); err != nil {
+		log.Fatalf("Error deleting documents in cart collection: %v", err)
+	}
 
 	// err := godotenv.Load(".env")
 	// if err != nil {
@@ -152,11 +159,10 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func removeDoubleSlashesMiddleware(c *gin.Context) {
-	// Clean up the URL path and remove double slashes
+
 	requestPath := c.Request.URL.Path
 	cleanedPath := cleanPath(requestPath)
 
-	// Redirect to the cleaned path if it's different from the original
 	if cleanedPath != requestPath {
 		c.Redirect(http.StatusMovedPermanently, cleanedPath)
 		return
@@ -176,4 +182,15 @@ func cleanPath(path string) string {
 	}
 
 	return "/" + strings.Join(cleanedParts, "/")
+}
+
+var cartCollection2 *mongo.Collection = database.GetCollection(database.DB, "carts")
+
+func deleteAllDocumentsInCartCollection() error {
+	_, err := cartCollection2.DeleteMany(context.Background(), bson.M{})
+	if err != nil {
+		return fmt.Errorf("delete error: %v", err)
+	}
+	fmt.Println("Deleted all documents in carts collection.")
+	return nil
 }
