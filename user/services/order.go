@@ -1779,7 +1779,8 @@ func SendToZarinpal(c *gin.Context) {
 	baseURL := os.Getenv("BASE_URL")
 	callbackPath := "/api/users/orders/checkout/verify"
 	callbackURL := baseURL + callbackPath
-	amount := totalPrice + 40000
+	// amount := totalPrice + 40000
+	amount := totalPrice
 	description := "Payment for order ID"
 
 	request := zarinpal.NewRequest(merchantID, callbackURL, uint(amount), description)
@@ -1835,7 +1836,9 @@ func BackPayment(c *gin.Context) {
 	amount := orderData.TotalPrice
 
 	verify := zarinpal.NewVerify(merchantID, authority, uint(amount))
+	log.Println("verify:", verify)
 	verifyResponse, err := verify.Exec()
+	log.Println("verifyResponse:", verifyResponse)
 
 	if err != nil {
 		c.HTML(http.StatusOK, "unsuccessful_payment.html", nil)
@@ -1846,6 +1849,7 @@ func BackPayment(c *gin.Context) {
 	buyPrice := strconv.Itoa(int(amount))
 
 	if verifyResponse.Status == 100 || verifyResponse.Status == 101 {
+		log.Println("status:", verifyResponse.Status)
 
 		_, err := ordersCollection.UpdateOne(c,
 			bson.M{"paymentId": authority},
@@ -1905,7 +1909,7 @@ func BackPayment(c *gin.Context) {
 func ServeFontandler(c *gin.Context) {
 	content, err := ioutil.ReadFile("./assets/font.css")
 	if err != nil {
-		// Handle error (e.g., log it, return an error response, etc.)
+
 		return
 	}
 	c.Data(http.StatusOK, "text/css", content)
@@ -1913,7 +1917,7 @@ func ServeFontandler(c *gin.Context) {
 func ServeStyleCSSHandler(c *gin.Context) {
 	content, err := ioutil.ReadFile("./assets/style.css")
 	if err != nil {
-		// Handle error (e.g., log it, return an error response, etc.)
+
 		return
 	}
 	c.Data(http.StatusOK, "text/css", content)
@@ -1921,7 +1925,7 @@ func ServeStyleCSSHandler(c *gin.Context) {
 func ServeImageCancel(c *gin.Context) {
 	content, err := ioutil.ReadFile("./assets/cancel.png")
 	if err != nil {
-		// Handle error (e.g., log it, return an error response, etc.)
+
 		return
 	}
 	c.Data(http.StatusOK, "text/css", content)
@@ -1929,7 +1933,7 @@ func ServeImageCancel(c *gin.Context) {
 func ServeImageOk(c *gin.Context) {
 	content, err := ioutil.ReadFile("./assets/checked.png")
 	if err != nil {
-		// Handle error (e.g., log it, return an error response, etc.)
+
 		return
 	}
 	c.Data(http.StatusOK, "text/css", content)

@@ -26,7 +26,7 @@ type CouponResponse struct {
 	ID              string    `json:"_id"`
 	IsExpired       bool      `json:"isExpired"`
 	WithoutDiscount bool      `json:"withoutDiscount"`
-	CouponCode      string    `json:"couponCode"`
+	CouponCode      string    `json:"couponCode,omitempty"`
 	Amount          int       `json:"amount"`
 	MinimumPurchase int       `json:"minimumPurchase"`
 	DateExpired     time.Time `json:"dateExpired"`
