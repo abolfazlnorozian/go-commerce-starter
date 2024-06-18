@@ -27,7 +27,7 @@ func ProRouter(r *gin.RouterGroup) {
 	pro.GET("/products/", services.GetProductByCategory)
 	pro.GET("/products/:slug", services.GetProductBySlug)
 	pro.GET("/mix-products", services.GetMixProducts)
-	userAuth.POST("/mix", services.PostMixesProduct)
+	// userAuth.POST("/mix", services.PostMixesProduct)
 	userAuth.OPTIONS("/mix", services.PostMixesProduct)
 	userAuth.DELETE("/mix/:id", services.DeleteMixofCart)
 	userAuth.OPTIONS("/mix/:id", services.DeleteMixofCart)
