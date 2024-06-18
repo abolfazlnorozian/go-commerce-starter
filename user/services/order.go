@@ -1822,7 +1822,7 @@ func BackPayment(c *gin.Context) {
 
 	err := ordersCollection.FindOne(c, bson.M{"paymentId": authority}).Decode(&orderData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"err1": err.Error()})
 		return
 	}
 	err = godotenv.Load(".env")
