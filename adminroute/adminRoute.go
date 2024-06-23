@@ -190,6 +190,7 @@ func OrderRouteByAdmin(r *gin.RouterGroup) {
 
 	ord.POST("/users/orders/:id/status", service.UpdateSatusOrderByAdmin)
 	or.GET("/users/orders/count", service.GetAllOrders)
+
 }
 func CouponRoutesByAdmin(r *gin.RouterGroup) {
 	coupon := r.Group("/")
@@ -199,4 +200,10 @@ func CouponRoutesByAdmin(r *gin.RouterGroup) {
 	coupon.POST("/coupons", service.PostCouponByAdmin)
 	coupon.DELETE("/coupons/:id", service.DeleteCouponByAdmin)
 	coupon.PUT("/coupons/:id", service.UpdateCouponByAdmin)
+}
+
+func MessagetoAllUsers(r *gin.RouterGroup) {
+	message := r.Group("/")
+	message.POST("/users/messages", service.SendMessageToAllUsers)
+
 }

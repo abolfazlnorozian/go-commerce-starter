@@ -103,6 +103,7 @@ func main() {
 	adminroute.OrderRouteByAdmin(v3)
 	adminroute.CouponRoutesByAdmin(v3)
 	adminroute.DownloaderByAdmin(v4)
+	adminroute.MessagetoAllUsers(v3)
 
 	go func() {
 		database.MD()

@@ -25,7 +25,7 @@ func GetOrdersByAdmin(c *gin.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	limit := 20
+	limit := 15
 
 	// Calculate offset
 	offset := int64((page - 1) * limit)

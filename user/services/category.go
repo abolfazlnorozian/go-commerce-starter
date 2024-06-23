@@ -96,6 +96,63 @@ func findById(root *entities.Response, id interface{}) *entities.Response {
 	}
 	return nil
 }
+func FindAllListCategories(c *gin.Context) {
+
+	var categories []entities.Category
+	var result []*entities.Response
+
+	results, err := categoryCollection.Find(c, bson.D{{}})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"massage": err.Error()})
+		return
+	}
+
+	for results.Next(c) {
+
+		var title entities.Category
+
+		err = results.Decode(&title)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+
+		}
+
+		categories = append(categories, title)
+
+	}
+
+	for _, val := range categories {
+		res := &entities.Response{
+			ID:        *val.ID,
+			Images:    val.Images,
+			Parent:    val.Parent,
+			Name:      val.Name,
+			Ancestors: val.Ancestors,
+			Slug:      val.Slug,
+			V:         val.V,
+			// Details:   val.Details,
+			Faq: val.Faq,
+		}
+
+		var found bool
+		for _, root := range result {
+			parent := findById(root, val.Parent)
+			if parent != nil {
+				parent.Children = append(parent.Children, res)
+				found = true
+				break
+			}
+
+		}
+		if !found {
+			result = append(result, res)
+		}
+
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "categories", "body": result})
+}
 
 // func AddCategories(c *gin.Context) {
 

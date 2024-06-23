@@ -45,6 +45,7 @@ func CategoryRouter(r *gin.RouterGroup) {
 	c := r.Group("/")
 
 	c.GET("/categories", services.FindAllCategories)
+	c.GET("/categories/list", services.FindAllListCategories)
 	// c.OPTIONS("/categories", services.FindAllCategories)
 	// ca.POST("/add", services.AddCategories)
 	c.GET("/categories/:slug", services.GetOneGategory)
