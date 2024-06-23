@@ -99,7 +99,7 @@ func findById(root *entities.Response, id interface{}) *entities.Response {
 func FindAllListCategories(c *gin.Context) {
 
 	var categories []entities.Category
-	var result []*entities.Response
+	var result []*entities.Response2
 
 	results, err := categoryCollection.Find(c, bson.D{{}})
 	if err != nil {
@@ -123,21 +123,18 @@ func FindAllListCategories(c *gin.Context) {
 	}
 
 	for _, val := range categories {
-		res := &entities.Response{
+		res := &entities.Response2{
 			ID:        *val.ID,
 			Images:    val.Images,
 			Parent:    val.Parent,
 			Name:      val.Name,
 			Ancestors: val.Ancestors,
 			Slug:      val.Slug,
-			V:         val.V,
-			// Details:   val.Details,
-			Faq: val.Faq,
 		}
 
 		var found bool
 		for _, root := range result {
-			parent := findById(root, val.Parent)
+			parent := findByIdListcategories(root, val.Parent)
 			if parent != nil {
 				parent.Children = append(parent.Children, res)
 				found = true
@@ -152,6 +149,23 @@ func FindAllListCategories(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "categories", "body": result})
+}
+func findByIdListcategories(root *entities.Response2, id interface{}) *entities.Response2 {
+	queue := make([]*entities.Response2, 0)
+	queue = append(queue, root)
+	for len(queue) > 0 {
+		nextUp := queue[0]
+		queue = queue[1:]
+		if nextUp.ID == id {
+			return nextUp
+		}
+		if len(nextUp.Children) > 0 {
+			for _, child := range nextUp.Children {
+				queue = append(queue, child)
+			}
+		}
+	}
+	return nil
 }
 
 // func AddCategories(c *gin.Context) {

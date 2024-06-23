@@ -54,6 +54,18 @@ type Response struct {
 	Faq       []NewFaq           `json:"faq" bson:"faq"`
 	Children  []*Response        `json:"children,omitempty" bson:"children,omitempty"`
 }
+type Response2 struct {
+	ID        primitive.ObjectID `json:"_id" bson:"_id"`
+	Images    Image              `json:"image" bson:"image"`
+	Parent    interface{}        `json:"parent" bson:"parent"`
+	Name      string             `json:"name" bson:"name"`
+	Ancestors []Ancestor         `json:"ancestors" bson:"ancestors"`
+	Slug      string             `json:"slug" bson:"slug"`
+	V         int                `json:"__v,omitempty" bson:"__v,omitempty"`
+	Details   string             `json:"details,omitempty" bson:"details,omitemty"`
+	Faq       []NewFaq           `json:"faq,omitempty" bson:"faq,omitempty"`
+	Children  []*Response2       `json:"children,omitempty" bson:"children,omitempty"`
+}
 
 // type NullableObjectID struct {
 // 	primitive.ObjectID
