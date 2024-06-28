@@ -54,6 +54,7 @@ require (
 )
 
 require (
+	github.com/chai2010/webp v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/google/uuid v1.6.0
@@ -62,4 +63,5 @@ require (
 	github.com/swaggo/swag v1.16.2
 	go.mongodb.org/mongo-driver v1.11.4
 	golang.org/x/crypto v0.17.0
+	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
 )

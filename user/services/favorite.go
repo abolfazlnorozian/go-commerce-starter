@@ -41,12 +41,11 @@ func AddProductToFavorite(c *gin.Context) {
 	}
 	fmt.Println("product:", product)
 
-	// // Check if the product ID is valid
 	if !primitive.IsValidObjectID(product.ID) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
-	// Convert the product ID to an ObjectID for database operations
+
 	productID, err := primitive.ObjectIDFromHex(product.ID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID format"})
@@ -55,11 +54,9 @@ func AddProductToFavorite(c *gin.Context) {
 	// productID = product.ID
 	// fmt.Println("productID:", productID)
 
-	// Create an array of product IDs to add to the user's favorites
 	productIDs := []primitive.ObjectID{productID}
 	// fmt.Println("productIDs:", productIDs)
 
-	// Update the user document in the database to add the product to favorites
 	update := bson.M{"$addToSet": bson.M{"favoritesProducts": bson.M{"$each": productIDs}}}
 	_, err = usersCollection.UpdateOne(
 		c,
@@ -140,10 +137,9 @@ func GetFavorites(c *gin.Context) {
 //@Success 200 "Success"
 //@Router /api/users/favorites/{productID} [delete]
 func DeleteFavorites(c *gin.Context) {
-	// Extract the product ID from the URL
+
 	productIDStr := c.Param("productID")
 
-	// Convert the product ID string to a MongoDB ObjectId
 	productID, err := primitive.ObjectIDFromHex(productIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
@@ -161,21 +157,20 @@ func DeleteFavorites(c *gin.Context) {
 		return
 	}
 	userIDs := claims.Id
-	// var user entities.Users
+
 	filter := bson.M{"_id": userIDs}
 
 	update := bson.M{"$pull": bson.M{"favoritesProducts": productID}}
 
-	// Update the user document
 	result, err := usersCollection.UpdateOne(c, filter, update)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user document"})
 		return
 	}
-	// Log the values for debugging
+
 	fmt.Println("User ID:", userIDs)
 	fmt.Println("Product ID to remove:", productID)
-	// Check if the update modified any documents
+
 	if result.ModifiedCount == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found or product ID not in favorites"})
 		return

@@ -8,10 +8,20 @@
 package router
 
 import (
+	"bytes"
+	"image"
+	"image/jpeg"
+	"image/png"
+	"net/http"
+	"os"
+	"path/filepath"
 	"shop/auth"
 	"shop/user/services"
+	"strings"
 
+	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/image/draw"
 )
 
 func ProRouter(r *gin.RouterGroup) {
@@ -27,7 +37,7 @@ func ProRouter(r *gin.RouterGroup) {
 	pro.GET("/products/", services.GetProductByCategory)
 	pro.GET("/products/:slug", services.GetProductBySlug)
 	pro.GET("/mix-products", services.GetMixProducts)
-	// userAuth.POST("/mix", services.PostMixesProduct)
+	userAuth.POST("/mix", services.PostMixesProduct)
 	userAuth.OPTIONS("/mix", services.PostMixesProduct)
 	userAuth.DELETE("/mix/:id", services.DeleteMixofCart)
 	userAuth.OPTIONS("/mix/:id", services.DeleteMixofCart)
@@ -60,12 +70,62 @@ func CategoryRouter(r *gin.RouterGroup) {
 // 	up.GET("/downloads", upload.FindAllImages)
 
 // }
+//****************************************************
 func Downloader(r *gin.RouterGroup) {
 	down := r.Group("/")
-	down.Static("/uploads", "./public/images")
-	//down.GET("/uploads/:filename", upload.FindOneImage)
 
+	down.GET("/uploads/*filepath", func(c *gin.Context) {
+		filepathParam := c.Param("filepath")
+		fullpath := "./public/images" + filepathParam
+
+		file, err := os.Open(fullpath)
+		if err != nil {
+			c.String(http.StatusNotFound, "File not found")
+			return
+		}
+		defer file.Close()
+
+		var img image.Image
+		switch strings.ToLower(filepath.Ext(fullpath)) {
+		case ".jpg", ".jpeg":
+			img, err = jpeg.Decode(file)
+		case ".png":
+			img, err = png.Decode(file)
+		default:
+			c.String(http.StatusUnsupportedMediaType, "Unsupported image format")
+			return
+		}
+
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to decode image")
+			return
+		}
+
+		resizedImg := resizeImage(img, 100, 100)
+
+		webpBuffer := new(bytes.Buffer)
+		if err := webp.Encode(webpBuffer, resizedImg, &webp.Options{Lossless: true}); err != nil {
+			c.String(http.StatusInternalServerError, "Failed to convert image to WebP")
+			return
+		}
+
+		c.Header("Content-Type", "image/webp")
+		c.Writer.Write(webpBuffer.Bytes())
+	})
 }
+
+func resizeImage(img image.Image, width, height int) image.Image {
+	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+	return dst
+}
+
+// func Downloader(r *gin.RouterGroup) {
+// 	down := r.Group("/")
+// 	down.Static("/uploads", "./public/images")
+// 	//down.GET("/uploads/:filename", upload.FindOneImage)
+
+// }
 
 func UserRoute(r *gin.RouterGroup) {
 	us := r.Group("/users")

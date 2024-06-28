@@ -69,7 +69,6 @@ func AddCatrs(c *gin.Context) {
 	cart.CreatedAt = time.Now()
 	cart.UpdatedAt = time.Now()
 
-	// Create a ComeProduct based on the input JSON
 	product := entities.ComeProduct{
 		Quantity:      1,
 		VariationsKey: input.VariationsKey,
@@ -372,7 +371,7 @@ func GetCarts(c *gin.Context) {
 		// }
 
 		if len(cart.Products) == 0 && cart.Mix == nil {
-			// Cart is empty, return empty cart response
+
 			c.JSON(http.StatusCreated, gin.H{
 				"success": true,
 				"message": "cart",
@@ -390,7 +389,7 @@ func GetCarts(c *gin.Context) {
 		cartNotFound = false
 		if cart.Mix == nil {
 			for _, product := range cart.Products {
-				// Fetch detailed product information from your data source (e.g., database)
+
 				var retrievedProduct entities.Products
 				err := prodCollection.FindOne(c, bson.M{"_id": product.ProductId}).Decode(&retrievedProduct)
 				if err != nil {
@@ -398,7 +397,6 @@ func GetCarts(c *gin.Context) {
 					return
 				}
 
-				// Create a detailed product structure
 				detailedProduct := map[string]interface{}{
 					"_id":             retrievedProduct.ID.Hex(),
 					"name":            retrievedProduct.Name,
@@ -427,7 +425,6 @@ func GetCarts(c *gin.Context) {
 					"updatedAt":       retrievedProduct.UpdatedAt,
 					"salesNumber":     retrievedProduct.SalesNumber,
 					"bannerUrl":       retrievedProduct.BannerUrl,
-					// Add more fields as needed
 				}
 				var variations []entities.Properties
 				if product.VariationsKey == nil {
@@ -444,18 +441,17 @@ func GetCarts(c *gin.Context) {
 							return
 
 						}
-						// Append both simplified and detailed products to the products slice
+
 						products = append(products, map[string]interface{}{
 							"_id":           product.Id.Hex(),
 							"quantity":      product.Quantity,
 							"variationsKey": product.VariationsKey,
 							"product":       detailedProduct,
-							"variations":    variations, // Include variations for product entries
+							"variations":    variations,
 							"mixproducts":   []interface{}{},
-							// "mix":           mixes, // Set mix to nil for product entries
+							// "mix":           mixes, //
 						})
 					}
-					// continue
 
 				} else {
 					cursor, err := propertiesCollection.Find(c, bson.M{"_id": bson.M{"$in": product.VariationsKey}})
@@ -466,7 +462,6 @@ func GetCarts(c *gin.Context) {
 					}
 					defer cursor.Close(c)
 
-					// Iterate through the cursor to decode each variation
 					for cursor.Next(c) {
 						var variation entities.Properties
 						if err := cursor.Decode(&variation); err != nil {
@@ -480,15 +475,14 @@ func GetCarts(c *gin.Context) {
 						return
 					}
 
-					// Append both simplified and detailed products to the products slice
 					products = append(products, map[string]interface{}{
 						"_id":           product.Id.Hex(),
 						"quantity":      product.Quantity,
 						"variationsKey": product.VariationsKey,
 						"product":       detailedProduct,
-						"variations":    variations, // Include variations for product entries
+						"variations":    variations,
 						"mixproducts":   []interface{}{},
-						// "mix":           mixes, // Set mix to nil for product entries
+						// "mix":           mixes,
 					})
 				}
 
@@ -525,6 +519,18 @@ func GetCarts(c *gin.Context) {
 					return
 				}
 				var balanceDetails []map[string]interface{}
+				// for i, balance := range mix.Balances {
+				// 	balanceDetail := map[string]interface{}{
+				// 		"balance": balance,
+				// 	}
+
+				// 	if i < len(productDetails) {
+				// 		balanceDetail["nameproduct"] = productDetails[i].Name
+				// 	} else {
+				// 		balanceDetail["nameproduct"] = "Unknown Product"
+				// 	}
+				// 	balanceDetails = append(balanceDetails, balanceDetail)
+				// }
 				for i, balance := range mix.Balances {
 					balanceDetail := map[string]interface{}{
 						"balance":     balance,
@@ -641,7 +647,6 @@ func GetCarts(c *gin.Context) {
 					return
 				}
 
-				// Create a detailed product structure
 				detailedProduct := map[string]interface{}{
 					"_id":             retrievedProduct.ID.Hex(),
 					"name":            retrievedProduct.Name,
@@ -670,7 +675,6 @@ func GetCarts(c *gin.Context) {
 					"updatedAt":       retrievedProduct.UpdatedAt,
 					"salesNumber":     retrievedProduct.SalesNumber,
 					"bannerUrl":       retrievedProduct.BannerUrl,
-					// Add more fields as needed
 				}
 				var variations []entities.Properties
 				if product.VariationsKey == nil {
@@ -814,14 +818,12 @@ func GetCarts(c *gin.Context) {
 				for _, mixID := range cart.Mix {
 					var mix entities.Mixes
 
-					// Find the mix document by its ID
 					err := mixesCollection.FindOne(c, bson.M{"_id": mixID}).Decode(&mix)
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to find mix", "details": err.Error()})
 						return
 					}
 
-					// Fetch mix products for the current mix
 					var productDetails []entities.MixProducts
 					cur, err := mixProductCollection.Find(c, bson.M{"_id": bson.M{"$in": mix.Products}})
 					if err != nil {
@@ -830,7 +832,6 @@ func GetCarts(c *gin.Context) {
 					}
 					defer cur.Close(c)
 
-					// Iterate through the cursor to decode each mix product
 					for cur.Next(c) {
 						var mixProduct entities.MixProducts
 						if err := cur.Decode(&mixProduct); err != nil {
@@ -852,7 +853,6 @@ func GetCarts(c *gin.Context) {
 						balanceDetails = append(balanceDetails, balanceDetail)
 					}
 
-					// Construct the mix object with full product details
 					responseMix := map[string]interface{}{
 						"_id":       mix.ID,
 						"products":  productDetails,
@@ -869,7 +869,6 @@ func GetCarts(c *gin.Context) {
 					mixes = append(mixes, responseMix)
 				}
 
-				// Append both simplified and detailed products to the products slice
 				products = append(products, map[string]interface{}{
 					"_id":           product.Id.Hex(),
 					"quantity":      product.Quantity,
@@ -886,7 +885,7 @@ func GetCarts(c *gin.Context) {
 	}
 
 	if cartNotFound {
-		// User has an empty cart
+
 		emptyCartResponse := gin.H{
 			"success": true,
 			"message": "cart",

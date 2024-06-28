@@ -641,13 +641,10 @@ func GetProductsByOnlyExists(c *gin.Context) {
 // @Success 200 {object} response.GetProductByOneField
 // @Router /api/products/ [get]
 func GetProductByCategory(c *gin.Context) {
-	// Set a default filter to fetch all products
 	filter := bson.M{}
 
-	// If not all documents are requested, apply additional filter conditions
 	categoryName := c.DefaultQuery("category", "")
 	if categoryName != "" {
-		// Lookup the category by slug
 		var category entities.Category
 		err := categoryCollection.FindOne(context.Background(), bson.M{"slug": categoryName}).Decode(&category)
 		if err != nil {
@@ -672,17 +669,14 @@ func GetProductByCategory(c *gin.Context) {
 		}
 	}
 
-	// Pagination parameters from the query
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "40"))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Calculate skip value for pagination
 	skip := (page - 1) * limit
 
-	// Calculate total number of documents in the collection
 	totalDocs, err := proCollection.CountDocuments(ctx, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to count products"})
@@ -745,7 +739,6 @@ func GetProductByCategory(c *gin.Context) {
 		customProducts = append(customProducts, customProduct)
 	}
 
-	// Prepare the response with custom products and pagination information
 	response := gin.H{
 		"docs":          customProducts,
 		"totalDocs":     totalDocs,
@@ -757,7 +750,6 @@ func GetProductByCategory(c *gin.Context) {
 		"hasNextPage":   hasNextPage,
 	}
 
-	// Set prevPage and nextPage values based on the current page
 	if hasPrevPage {
 		response["prevPage"] = page - 1
 	} else {
@@ -949,13 +941,11 @@ func searchChildrenIDs(categoryID primitive.ObjectID) ([]entities.Category, erro
 			return nil, err
 		}
 
-		// Recursively search for children IDs
 		childrenIDs, err := searchChildrenIDs(*category.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		// Append the current category and its children
 		categoryIDs = append(categoryIDs, category)
 		categoryIDs = append(categoryIDs, childrenIDs...)
 	}
@@ -1135,14 +1125,12 @@ func PostMixesProduct(c *gin.Context) {
 			return
 		}
 
-		// Append the mix ID to the mixIDs slice
 		mixIDs := []primitive.ObjectID{mix.ID}
 
 		filter := bson.M{"username": username}
 		var existingDoc entities.Catrs
 		err = cartCollection.FindOne(c, filter).Decode(&existingDoc)
 		if err == nil {
-			// If document exists, update it with the new mix
 			update := bson.M{"$push": bson.M{"mix": bson.M{"$each": mixIDs}}}
 			_, err := cartCollection.UpdateOne(c, filter, update)
 			if err != nil {
@@ -1150,7 +1138,6 @@ func PostMixesProduct(c *gin.Context) {
 				return
 			}
 		} else {
-			// If document does not exist, create a new one
 			var cart entities.Catrs
 			cart.Id = primitive.NewObjectID()
 			cart.Status = "active"
@@ -1159,12 +1146,10 @@ func PostMixesProduct(c *gin.Context) {
 			cart.CreatedAt = time.Now()
 			cart.UpdatedAt = time.Now()
 
-			// Initialize Products field if nil
 			if cart.Products == nil {
 				cart.Products = make([]entities.ComeProduct, 0)
 			}
 
-			// Insert the new document into the database
 			_, err := cartCollection.InsertOne(c, cart)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})

@@ -313,7 +313,7 @@ func AddOrder(c *gin.Context) {
 				}
 				subtotal := 0
 				mixBalance := mix.Balances[index] * mix.Weight
-				mixDevide := float64(mixBalance) / 100000
+				mixDevide := float64(mixBalance) / 10000
 				money := mixDevide * float64(mixProduct.Price)
 				subtotal += int(money)
 				// Calculate subtotal for the mix product using the correct index
@@ -467,7 +467,7 @@ func AddOrder(c *gin.Context) {
 				}
 				subtotal := 0
 				mixBalance := mix.Balances[index] * mix.Weight
-				mixDevide := float64(mixBalance) / 100000
+				mixDevide := float64(mixBalance) / 10000
 				money := mixDevide * float64(mixProduct.Price)
 				subtotal += int(money)
 				// Calculate subtotal for the mix product using the correct index
@@ -1490,14 +1490,12 @@ func GetOrderByID(c *gin.Context) {
 				return
 			}
 
-			// Store mix products in the map with mix ID as the key (convert mix ID to string)
 			mixProductsMap[mix.ID.Hex()] = mixProducts
 		}
 
-		// Construct mix array for the response body
 		var mixArray []gin.H
 		for _, mix := range mixes {
-			mixProductArray, ok := mixProductsMap[mix.ID.Hex()] // Convert mix ID to string
+			mixProductArray, ok := mixProductsMap[mix.ID.Hex()]
 			if !ok {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "mix products not found for mix ID: " + mix.ID.Hex()})
 				return
