@@ -61,6 +61,7 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.2
+	github.com/yaa110/go-persian-calendar v1.2.0
 	go.mongodb.org/mongo-driver v1.11.4
 	golang.org/x/crypto v0.17.0
 	golang.org/x/image v0.0.0-20211028202545-6944b10bf410

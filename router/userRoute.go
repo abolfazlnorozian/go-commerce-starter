@@ -115,39 +115,70 @@ func Downloader(r *gin.RouterGroup) {
 		c.Writer.Write(webpBuffer.Bytes())
 	})
 }
+
+// func resizeImage(img image.Image) image.Image {
+// 	srcBounds := img.Bounds()
+// 	srcWidth := srcBounds.Dx()
+// 	srcHeight := srcBounds.Dy()
+
+// 	const maxDim = 16383
+
+// 	ratio := float64(srcWidth) / float64(srcHeight)
+// 	var newWidth, newHeight int
+
+// 	if srcWidth > srcHeight {
+// 		if srcWidth > maxDim {
+// 			newWidth = maxDim
+// 			newHeight = int(float64(maxDim) / ratio)
+// 		} else {
+// 			newWidth = srcWidth
+// 			newHeight = srcHeight
+// 		}
+// 	} else {
+// 		if srcHeight > maxDim {
+// 			newHeight = maxDim
+// 			newWidth = int(float64(maxDim) * ratio)
+// 		} else {
+// 			newWidth = srcWidth
+// 			newHeight = srcHeight
+// 		}
+// 	}
+
+// 	if newWidth > maxDim {
+// 		newWidth = maxDim
+// 	}
+// 	if newHeight > maxDim {
+// 		newHeight = maxDim
+// 	}
+
+// 	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
+// 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+// 	return dst
+// }
+
 func resizeImage(img image.Image) image.Image {
 	srcBounds := img.Bounds()
 	srcWidth := srcBounds.Dx()
 	srcHeight := srcBounds.Dy()
 
-	const maxDim = 16383
+	const targetMaxDim = 300 // Target maximum dimension for resizing
 
+	// Calculate the new dimensions while maintaining the aspect ratio
 	ratio := float64(srcWidth) / float64(srcHeight)
 	var newWidth, newHeight int
 
-	if srcWidth > srcHeight {
-		if srcWidth > maxDim {
-			newWidth = maxDim
-			newHeight = int(float64(maxDim) / ratio)
+	// Resize if larger than targetMaxDim, else keep original size
+	if srcWidth > targetMaxDim || srcHeight > targetMaxDim {
+		if ratio > 1 { // Width > Height
+			newWidth = targetMaxDim
+			newHeight = int(float64(targetMaxDim) / ratio)
 		} else {
-			newWidth = srcWidth
-			newHeight = srcHeight
+			newHeight = targetMaxDim
+			newWidth = int(float64(targetMaxDim) * ratio)
 		}
 	} else {
-		if srcHeight > maxDim {
-			newHeight = maxDim
-			newWidth = int(float64(maxDim) * ratio)
-		} else {
-			newWidth = srcWidth
-			newHeight = srcHeight
-		}
-	}
-
-	if newWidth > maxDim {
-		newWidth = maxDim
-	}
-	if newHeight > maxDim {
-		newHeight = maxDim
+		newWidth = srcWidth
+		newHeight = srcHeight
 	}
 
 	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))

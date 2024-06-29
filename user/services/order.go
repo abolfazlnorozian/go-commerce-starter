@@ -20,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	ptime "github.com/yaa110/go-persian-calendar"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -168,8 +169,9 @@ func AddOrder(c *gin.Context) {
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = time.Now()
 	order.V = 0
+	jalaliDate := ptime.New(order.CreatedAt)
+	order.JStartDate = jalaliDate.Format("yyyy-MM-dd HH:mm:ss")
 
-	// Fetching user's cart from the database
 	var cart entities.Catrs
 	err = cartCollection.FindOne(c, bson.M{"username": username}).Decode(&cart)
 	if err != nil {
