@@ -101,7 +101,9 @@ func Downloader(r *gin.RouterGroup) {
 			return
 		}
 
-		resizedImg := resizeImage(img, 300, 300)
+		// maxWidth, maxHeight := 300, 300
+		// resizedImg := resizeImage(img, maxWidth, maxHeight)
+		resizedImg := resizeImage(img)
 
 		webpBuffer := new(bytes.Buffer)
 		if err := webp.Encode(webpBuffer, resizedImg, &webp.Options{Lossless: true}); err != nil {
@@ -113,12 +115,81 @@ func Downloader(r *gin.RouterGroup) {
 		c.Writer.Write(webpBuffer.Bytes())
 	})
 }
+func resizeImage(img image.Image) image.Image {
+	srcBounds := img.Bounds()
+	srcWidth := srcBounds.Dx()
+	srcHeight := srcBounds.Dy()
 
-func resizeImage(img image.Image, width, height int) image.Image {
-	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+	const maxDim = 16383
+
+	ratio := float64(srcWidth) / float64(srcHeight)
+	var newWidth, newHeight int
+
+	if srcWidth > srcHeight {
+		if srcWidth > maxDim {
+			newWidth = maxDim
+			newHeight = int(float64(maxDim) / ratio)
+		} else {
+			newWidth = srcWidth
+			newHeight = srcHeight
+		}
+	} else {
+		if srcHeight > maxDim {
+			newHeight = maxDim
+			newWidth = int(float64(maxDim) * ratio)
+		} else {
+			newWidth = srcWidth
+			newHeight = srcHeight
+		}
+	}
+
+	if newWidth > maxDim {
+		newWidth = maxDim
+	}
+	if newHeight > maxDim {
+		newHeight = maxDim
+	}
+
+	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
 	return dst
 }
+
+// func resizeImage(img image.Image, maxWidth, maxHeight int) image.Image {
+// 	srcBounds := img.Bounds()
+// 	srcWidth := srcBounds.Dx()
+// 	srcHeight := srcBounds.Dy()
+
+// 	// Calculate the new dimensions while maintaining the aspect ratio
+// 	ratio := float64(srcWidth) / float64(srcHeight)
+// 	var newWidth, newHeight int
+
+// 	if srcWidth > srcHeight {
+// 		newWidth = maxWidth
+// 		newHeight = int(float64(maxWidth) / ratio)
+// 		if newHeight > maxHeight {
+// 			newHeight = maxHeight
+// 			newWidth = int(float64(maxHeight) * ratio)
+// 		}
+// 	} else {
+// 		newHeight = maxHeight
+// 		newWidth = int(float64(maxHeight) * ratio)
+// 		if newWidth > maxWidth {
+// 			newWidth = maxWidth
+// 			newHeight = int(float64(maxWidth) / ratio)
+// 		}
+// 	}
+
+// 	dst := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
+// 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+// 	return dst
+// }
+
+// func resizeImage(img image.Image, width, height int) image.Image {
+// 	dst := image.NewRGBA(image.Rect(0, 0, width, height))
+// 	draw.CatmullRom.Scale(dst, dst.Bounds(), img, img.Bounds(), draw.Over, nil)
+// 	return dst
+// }
 
 // func Downloader(r *gin.RouterGroup) {
 // 	down := r.Group("/")
