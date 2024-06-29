@@ -101,7 +101,7 @@ func Downloader(r *gin.RouterGroup) {
 			return
 		}
 
-		resizedImg := resizeImage(img, 100, 100)
+		resizedImg := resizeImage(img, 200, 200)
 
 		webpBuffer := new(bytes.Buffer)
 		if err := webp.Encode(webpBuffer, resizedImg, &webp.Options{Lossless: true}); err != nil {

@@ -1,4 +1,7 @@
 FROM golang:1.18.10-alpine3.17
+RUN apk update && \
+    apk add --no-cache gcc musl-dev
+    
 WORKDIR /app
 
 COPY go.mod go.sum ./
