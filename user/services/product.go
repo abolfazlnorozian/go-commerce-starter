@@ -28,8 +28,8 @@ var mixesCollection *mongo.Collection = database.GetCollection(database.DB, "mix
 type ProductWithCategories struct {
 	entities.Products
 
-	Categories []entities.CategoryRespose `json:"categories"`
-	Dimension  []DimensionResponse        `json:"dimensions"`
+	Categories []entities.Category `json:"categories"`
+	Dimension  []DimensionResponse `json:"dimensions"`
 }
 
 type DimensionResponse struct {
@@ -61,7 +61,6 @@ func GetProductBySlug(c *gin.Context) {
 		return
 	}
 
-	// Fetch category details and store them in the Categories field
 	categories, err := fetchCategoryDetails(ctx, proWithCategories.Category)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error2": err.Error()})
@@ -140,8 +139,8 @@ func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension)
 	return dimensionResponses, nil
 }
 
-func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID) ([]entities.CategoryRespose, error) {
-	var categories []entities.CategoryRespose
+func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID) ([]entities.Category, error) {
+	var categories []entities.Category
 
 	cursor, err := categoryCollection.Find(ctx, bson.M{"_id": bson.M{"$in": categoryIDs}})
 	if err != nil {
@@ -150,7 +149,7 @@ func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID)
 
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var category entities.CategoryRespose
+		var category entities.Category
 		if err := cursor.Decode(&category); err != nil {
 			return nil, err
 		}
