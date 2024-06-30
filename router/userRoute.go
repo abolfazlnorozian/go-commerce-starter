@@ -161,7 +161,7 @@ func resizeImage(img image.Image) image.Image {
 	srcWidth := srcBounds.Dx()
 	srcHeight := srcBounds.Dy()
 
-	const targetMaxDim = 300 // Target maximum dimension for resizing
+	const targetMaxDim = 400
 
 	// Calculate the new dimensions while maintaining the aspect ratio
 	ratio := float64(srcWidth) / float64(srcHeight)
