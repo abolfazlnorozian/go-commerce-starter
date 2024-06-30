@@ -28,8 +28,8 @@ var mixesCollection *mongo.Collection = database.GetCollection(database.DB, "mix
 type ProductWithCategories struct {
 	entities.Products
 
-	Categories []entities.Category `json:"categories"`
-	Dimension  []DimensionResponse `json:"dimensions"`
+	Categories []entities.CategoryRespose `json:"categories"`
+	Dimension  []DimensionResponse        `json:"dimensions"`
 }
 
 type DimensionResponse struct {
@@ -67,8 +67,59 @@ func GetProductBySlug(c *gin.Context) {
 		return
 	}
 
-	// Assign the fetched categories to the Categories field
 	proWithCategories.Categories = categories
+	var breadCrumbs []gin.H
+
+	for _, breadcrumbCategory := range proWithCategories.Categories {
+
+		if breadcrumbCategory.Parent == nil {
+			breadCrumb := gin.H{
+				"name":   breadcrumbCategory.Name,
+				"slug":   breadcrumbCategory.Slug,
+				"parent": breadcrumbCategory.Parent,
+			}
+			breadCrumbs = append(breadCrumbs, breadCrumb)
+		} else {
+			var cats []entities.CategoryBreadCrumb
+			res, err := categoryCollection.Find(c, bson.M{"_id": breadcrumbCategory.Parent})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error20": err.Error()})
+				return
+			}
+			defer res.Close(c)
+			for res.Next(c) {
+				var cat entities.CategoryBreadCrumb
+				err := res.Decode(&cat)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error21": err.Error()})
+					return
+				}
+				cats = append(cats, cat)
+			}
+			for _, paretCat := range cats {
+				breadCrumb2 := gin.H{
+					"name":   breadcrumbCategory.Name,
+					"slug":   breadcrumbCategory.Slug,
+					"parent": paretCat.Name,
+				}
+				breadCrumbs = append(breadCrumbs, breadCrumb2)
+
+			}
+		}
+
+	}
+	var proCatedory entities.CategoryBreadCrumb
+	err = categoryCollection.FindOne(c, bson.M{"_id": proWithCategories.Parent}).Decode(&proCatedory)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error22": err.Error()})
+		return
+	}
+	productBreadcrumb := gin.H{
+		"name":   proWithCategories.Name,
+		"slug":   proWithCategories.Slug,
+		"parent": proCatedory.Name,
+	}
+	breadCrumbs = append(breadCrumbs, productBreadcrumb)
 
 	var pro []entities.Dimension
 
@@ -96,21 +147,20 @@ func GetProductBySlug(c *gin.Context) {
 		return proWithCategories.Variations[i].Price < proWithCategories.Variations[j].Price
 	})
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "product", "body": proWithCategories, "breadCrumb": breadCrumbs})
 }
 
 func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension) ([]DimensionResponse, error) {
 	var dimensionResponses []DimensionResponse
 
 	for _, v := range propertyIDs {
-		// Fetch key document
+
 		var keyDocument entities.Properties
 		err := propertiesCollection.FindOne(ctx, bson.M{"_id": v.Key}).Decode(&keyDocument)
 		if err != nil {
 			return nil, err
 		}
 
-		// Fetch values documents
 		cursor, err := propertiesCollection.Find(ctx, bson.M{"_id": bson.M{"$in": v.Values}})
 		if err != nil {
 			return nil, err
@@ -126,7 +176,6 @@ func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension)
 			values = append(values, property)
 		}
 
-		// Create DimensionResponse
 		dimensionResponse := DimensionResponse{
 			Key:    keyDocument,
 			Values: values,
@@ -139,8 +188,8 @@ func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension)
 	return dimensionResponses, nil
 }
 
-func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID) ([]entities.Category, error) {
-	var categories []entities.Category
+func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID) ([]entities.CategoryRespose, error) {
+	var categories []entities.CategoryRespose
 
 	cursor, err := categoryCollection.Find(ctx, bson.M{"_id": bson.M{"$in": categoryIDs}})
 	if err != nil {
@@ -149,10 +198,12 @@ func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID)
 
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var category entities.Category
+		var category entities.CategoryRespose
+
 		if err := cursor.Decode(&category); err != nil {
 			return nil, err
 		}
+
 		categories = append(categories, category)
 	}
 
