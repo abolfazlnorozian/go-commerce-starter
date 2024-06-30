@@ -13,6 +13,8 @@ services:
       - BASE_URL=${BASE_URL}
       - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID}
       - ADMINS_PHONES=${ADMINS_PHONES}
+      - MIGRATION_DELETE_CART=${MIGRATION_DELETE_CART}
+      - IMAGE_QUALITY=${IMAGE_QUALITY}
     depends_on:
       - mongo
     volumes:

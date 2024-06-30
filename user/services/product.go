@@ -28,8 +28,8 @@ var mixesCollection *mongo.Collection = database.GetCollection(database.DB, "mix
 type ProductWithCategories struct {
 	entities.Products
 
-	Categories []entities.Category `json:"categories"`
-	Dimension  []DimensionResponse `json:"dimensions"`
+	Categories []entities.CategoryRespose `json:"categories"`
+	Dimension  []DimensionResponse        `json:"dimensions"`
 }
 
 type DimensionResponse struct {
@@ -140,9 +140,8 @@ func fetchPropertyDetails(ctx context.Context, propertyIDs []entities.Dimension)
 	return dimensionResponses, nil
 }
 
-// Function to fetch category details from the category collection
-func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID) ([]entities.Category, error) {
-	var categories []entities.Category
+func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID) ([]entities.CategoryRespose, error) {
+	var categories []entities.CategoryRespose
 
 	cursor, err := categoryCollection.Find(ctx, bson.M{"_id": bson.M{"$in": categoryIDs}})
 	if err != nil {
@@ -151,7 +150,7 @@ func fetchCategoryDetails(ctx context.Context, categoryIDs []primitive.ObjectID)
 
 	defer cursor.Close(ctx)
 	for cursor.Next(ctx) {
-		var category entities.Category
+		var category entities.CategoryRespose
 		if err := cursor.Decode(&category); err != nil {
 			return nil, err
 		}
