@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"shop/auth"
 	"shop/user/services"
+	"strconv"
 	"strings"
 
 	"github.com/chai2010/webp"
@@ -160,21 +161,28 @@ func resizeImage(img image.Image) image.Image {
 	srcBounds := img.Bounds()
 	srcWidth := srcBounds.Dx()
 	srcHeight := srcBounds.Dy()
+	imageQuality := os.Getenv("IMAGE_QUALITY")
+	imageQualities, err := strconv.Atoi(imageQuality)
+	if err != nil {
+		return nil
+	}
 
-	const targetMaxDim = 400
+	const maxDim = 16383
 
-	// Calculate the new dimensions while maintaining the aspect ratio
+	if imageQualities > maxDim {
+		imageQualities = maxDim
+	}
+
 	ratio := float64(srcWidth) / float64(srcHeight)
 	var newWidth, newHeight int
 
-	// Resize if larger than targetMaxDim, else keep original size
-	if srcWidth > targetMaxDim || srcHeight > targetMaxDim {
-		if ratio > 1 { // Width > Height
-			newWidth = targetMaxDim
-			newHeight = int(float64(targetMaxDim) / ratio)
+	if srcWidth > imageQualities || srcHeight > imageQualities {
+		if ratio > 1 {
+			newWidth = imageQualities
+			newHeight = int(float64(imageQualities) / ratio)
 		} else {
-			newHeight = targetMaxDim
-			newWidth = int(float64(targetMaxDim) * ratio)
+			newHeight = imageQualities
+			newWidth = int(float64(imageQualities) * ratio)
 		}
 	} else {
 		newWidth = srcWidth
