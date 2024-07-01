@@ -57,7 +57,7 @@ func GetProductBySlug(c *gin.Context) {
 
 	err := proCollection.FindOne(ctx, bson.M{"slug": slug}).Decode(&proWithCategories.Products)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error1": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error1": err.Error()})
 		return
 	}
 
