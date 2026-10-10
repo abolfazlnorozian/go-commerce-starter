@@ -24,9 +24,9 @@ Use it to learn, prototype, or as a foundation you extend for your own shop.
 | Docs | Swagger / OpenAPI (`swaggo`) |
 | Containers | Docker + Docker Compose |
 
-## Current core features
+## Core features
 
-Inspected from the codebase — these are implemented today:
+Key features currently supported out of the box:
 
 **Storefront (`/api`)**
 - SMS-based user registration / login and JWT sessions
@@ -111,13 +111,12 @@ cp .env.example .env
 
 Edit `.env` and set at least `MONGO_URL`, `DBNAME`, `SECRET_KEY`, `CORS_DOMAIN`, and `PORT`. See [`.env.example`](./.env.example) for the full list and comments.
 
-Never commit `.env`. Rotate any keys that were previously hardcoded or pushed to a remote.
 
 ### Database
 
 There is **no formal migration tool**. Collections are created implicitly when documents are inserted. Seed data (admin users, catalog, etc.) is application-specific — create records via the admin API or insert documents in MongoDB directly.
 
-Optional: set `MIGRATION_DELETE_CART=true` only if you intentionally want all cart documents deleted on process start.
+
 
 ### Run locally
 
@@ -143,11 +142,11 @@ Compose exposes MongoDB on host port `27018` → container `27017`.
 
 ### Tests
 
+Automated unit and integration test suites are planned on the roadmap. Contributions for test coverage are welcome!
 ```bash
+# Run tests once implemented
 go test ./...
 ```
-
-There is currently **little or no automated test coverage**; CI still runs this command so new tests are picked up automatically.
 
 ### Build
 
