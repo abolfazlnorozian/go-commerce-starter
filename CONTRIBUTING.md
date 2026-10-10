@@ -40,7 +40,7 @@ Explain *why* in the body when the change is non-obvious.
 
 1. Fork (or branch) and implement against latest `main`.
 2. Ensure the project builds: `go build ./...`
-3. Run tests: `go test ./...`
+3. Run tests (and add tests for new changes where applicable): ‍‍‍‍‍‍‍‍`go test ./...`
 4. Update docs when behavior or env vars change.
 5. Open a PR with a short summary and test notes.
 
