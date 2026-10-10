@@ -23,15 +23,6 @@ import (
 )
 
 func main() {
-	// password := "A3Yx5hNT83"
-
-	// hashedPassword, err := auth.GenerateBcryptHash(password)
-	// if err != nil {
-	// 	fmt.Println("Error generating hashed password:", err)
-	// 	return
-	// }
-
-	// fmt.Println("Bcrypt hash of password:", hashedPassword)
 	r := gin.Default()
 	r.Use(corsMiddleware())
 	// r.Use(handleDoubleSlash())

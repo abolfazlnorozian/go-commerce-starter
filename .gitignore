@@ -1,5 +1,16 @@
+# Local / runtime artifacts
 public/images
 .env
 state.json
+
+# Go / IDE
+bin/
+*.exe
+*.test
+*.out
+.idea/
+.vscode/
+*.swp
+.DS_Store
 
 

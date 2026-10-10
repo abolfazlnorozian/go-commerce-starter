@@ -7,24 +7,82 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
+func ippanelAPIKey() string {
+	return os.Getenv("IPPANEL_API_KEY")
+}
+
+func ippanelOriginator() string {
+	return envOr("IPPANEL_ORIGINATOR", "+983000505")
+}
+
+func ippanelPatternVerify() string {
+	return os.Getenv("IPPANEL_PATTERN_VERIFY")
+}
+
+func ippanelPatternPayment() string {
+	return os.Getenv("IPPANEL_PATTERN_PAYMENT")
+}
+
+func ippanelPatternReadyProduct() string {
+	return os.Getenv("IPPANEL_PATTERN_READY_PRODUCT")
+}
+
+func ippanelPatternSendProduct() string {
+	return os.Getenv("IPPANEL_PATTERN_SEND_PRODUCT")
+}
+
+func ippanelPatternAdmin() string {
+	return os.Getenv("IPPANEL_PATTERN_ADMIN")
+}
+
+func ippanelBroadcastSender() string {
+	return envOr("IPPANEL_SMS_SENDER", "+98Clubs")
+}
+
+// smsPatternConfigured returns false when API key or pattern code is missing,
+// so callers skip the HTTP request instead of sending an invalid payload.
+func smsPatternConfigured(patternCode, context string) bool {
+	if ippanelAPIKey() == "" {
+		log.Printf("sms: skipping %s — IPPANEL_API_KEY is not set", context)
+		return false
+	}
+	if patternCode == "" {
+		log.Printf("sms: skipping %s — pattern code env var is not set", context)
+		return false
+	}
+	return true
+}
+
 func SendSms(verifyCode, phoneNumber string) {
+	pattern := ippanelPatternVerify()
+	if !smsPatternConfigured(pattern, "SendSms") {
+		return
+	}
+
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
 
 	payload := fmt.Sprintf(`
   {
-	"pattern_code": "wshbtvj694w8uni",
-	"originator": "+983000505",
+	"pattern_code": "%s",
+	"originator": "%s",
 	"recipient": "%s",
 	"values": {
 	  "verification-code": "%s"
 	}
   }
-`, phoneNumber, verifyCode)
-	// Convert payload to io.Reader
+`, pattern, ippanelOriginator(), phoneNumber, verifyCode)
 	payloadReader := strings.NewReader(payload)
 
 	client := &http.Client{}
@@ -34,7 +92,7 @@ func SendSms(verifyCode, phoneNumber string) {
 		fmt.Println(err)
 		return
 	}
-	req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
+	req.Header.Add("Authorization", "AccessKey "+ippanelAPIKey())
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
@@ -54,20 +112,24 @@ func SendSms(verifyCode, phoneNumber string) {
 }
 
 func BackPaymentSendSms(verifyCode, phoneNumber string) {
+	pattern := ippanelPatternPayment()
+	if !smsPatternConfigured(pattern, "BackPaymentSendSms") {
+		return
+	}
+
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
 
 	payload := fmt.Sprintf(`
   {
-	"pattern_code": "05rz9m57ae49j6u",
-	"originator": "+983000505",
+	"pattern_code": "%s",
+	"originator": "%s",
 	"recipient": "%s",
 	"values": {
 	  "verification-code": "%s"
 	}
   }
-`, phoneNumber, verifyCode)
-	// Convert payload to io.Reader
+`, pattern, ippanelOriginator(), phoneNumber, verifyCode)
 	payloadReader := strings.NewReader(payload)
 
 	client := &http.Client{}
@@ -77,7 +139,7 @@ func BackPaymentSendSms(verifyCode, phoneNumber string) {
 		fmt.Println(err)
 		return
 	}
-	req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
+	req.Header.Add("Authorization", "AccessKey "+ippanelAPIKey())
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
@@ -97,20 +159,24 @@ func BackPaymentSendSms(verifyCode, phoneNumber string) {
 }
 
 func SendSmstoCustomerForReadyProduct(verifyCode, phoneNumber string) {
+	pattern := ippanelPatternReadyProduct()
+	if !smsPatternConfigured(pattern, "SendSmstoCustomerForReadyProduct") {
+		return
+	}
+
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
 
 	payload := fmt.Sprintf(`
   {
-	"pattern_code": "c19mua1xv9o9q3n",
-	"originator": "+983000505",
+	"pattern_code": "%s",
+	"originator": "%s",
 	"recipient": "%s",
 	"values": {
 	  "verification-code": "%s"
 	}
   }
-`, phoneNumber, verifyCode)
-	// Convert payload to io.Reader
+`, pattern, ippanelOriginator(), phoneNumber, verifyCode)
 	payloadReader := strings.NewReader(payload)
 
 	client := &http.Client{}
@@ -120,7 +186,7 @@ func SendSmstoCustomerForReadyProduct(verifyCode, phoneNumber string) {
 		fmt.Println(err)
 		return
 	}
-	req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
+	req.Header.Add("Authorization", "AccessKey "+ippanelAPIKey())
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
@@ -139,12 +205,17 @@ func SendSmstoCustomerForReadyProduct(verifyCode, phoneNumber string) {
 
 }
 func SendSmstoCustomerForSendProduct(verifyCode, postalTrackingCode, phoneNumber string) {
+	pattern := ippanelPatternSendProduct()
+	if !smsPatternConfigured(pattern, "SendSmstoCustomerForSendProduct") {
+		return
+	}
+
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
 
 	payload := map[string]interface{}{
-		"pattern_code": "kwp8i54jjcdug03",
-		"originator":   "+983000505",
+		"pattern_code": pattern,
+		"originator":   ippanelOriginator(),
 		"recipient":    phoneNumber,
 		"values": map[string]string{
 			"verification-code":   verifyCode,
@@ -165,7 +236,7 @@ func SendSmstoCustomerForSendProduct(verifyCode, postalTrackingCode, phoneNumber
 		fmt.Println("Error creating request:", err)
 		return
 	}
-	req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
+	req.Header.Add("Authorization", "AccessKey "+ippanelAPIKey())
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
@@ -191,22 +262,26 @@ func SendSmstoCustomerForSendProduct(verifyCode, postalTrackingCode, phoneNumber
 }
 
 func SendSmstoAdmin(verifyCode string, phoneNumbers []string) error {
+	pattern := ippanelPatternAdmin()
+	if !smsPatternConfigured(pattern, "SendSmstoAdmin") {
+		return nil
+	}
+
 	url := "http://rest.ippanel.com/v1/messages/patterns/send"
 	method := "POST"
 
 	for _, phoneNumber := range phoneNumbers {
 		payload := fmt.Sprintf(`
         {
-            "pattern_code": "cqxonayv27ogoth",
-            "originator": "+983000505",
+            "pattern_code": "%s",
+            "originator": "%s",
             "recipient": "%s",
             "values": {
                 "verification-code": "%s"
             }
         }
-        `, phoneNumber, verifyCode)
+        `, pattern, ippanelOriginator(), phoneNumber, verifyCode)
 
-		// Convert payload to io.Reader
 		payloadReader := strings.NewReader(payload)
 
 		client := &http.Client{}
@@ -215,7 +290,7 @@ func SendSmstoAdmin(verifyCode string, phoneNumbers []string) error {
 			fmt.Println(err)
 			return err
 		}
-		req.Header.Add("Authorization", "AccessKey wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ=")
+		req.Header.Add("Authorization", "AccessKey "+ippanelAPIKey())
 		req.Header.Add("Content-Type", "application/json")
 
 		res, err := client.Do(req)
@@ -236,16 +311,19 @@ func SendSmstoAdmin(verifyCode string, phoneNumbers []string) error {
 
 }
 func SendSmstoAllUsers(message string, phoneNumbers []string) error {
+	apiKey := ippanelAPIKey()
+	if apiKey == "" {
+		log.Printf("sms: skipping SendSmstoAllUsers — IPPANEL_API_KEY is not set")
+		return nil
+	}
+
 	url := "https://api2.ippanel.com/api/v1/sms/send/webservice/single"
 	method := "POST"
-	sender := "+98Clubs"
-	//10004223
-	apiKey := "wKIm00-HBx_YeLIpJxnChnd61ZqT8Go_89DQ_XL4yxQ="
+	sender := ippanelBroadcastSender()
 
 	var sentNumbers []string
 	var failedNumbers []string
 
-	// Escape newlines in the message
 	message = strings.ReplaceAll(message, "\n", "\\n")
 
 	for _, phoneNumber := range phoneNumbers {
@@ -257,7 +335,6 @@ func SendSmstoAllUsers(message string, phoneNumbers []string) error {
         }
         `, phoneNumber, sender, message)
 
-		// Convert payload to io.Reader
 		payloadReader := strings.NewReader(payload)
 
 		client := &http.Client{}
@@ -291,7 +368,7 @@ func SendSmstoAllUsers(message string, phoneNumbers []string) error {
 			continue
 		}
 
-		status := response["status"].(string)
+		status, _ := response["status"].(string)
 		if status == "Forbidden" || status == "Unprocessable Entity" {
 			fmt.Printf("Failed to send SMS to %s: %s\n", phoneNumber, string(body))
 			failedNumbers = append(failedNumbers, phoneNumber)
